@@ -17,22 +17,24 @@ def get_external_ip():
     return external_ip, external_port
 
 
-def run_server():
+def run_client(server_ip, server_port):
     external_ip, external_port = get_external_ip()
 
     # Create a UDP socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-    # Bind to the external IP and port
-    sock.bind(('', external_port))
-    print(f"Server listening on {external_ip}:{external_port}")
+    # Send a message to the server
+    message = b"Hello from the client!"
+    sock.sendto(message, (server_ip, server_port))
+    print(f"Sent message to {server_ip}:{server_port}")
 
-    # Wait for a client to connect
-    while True:
-        data, addr = sock.recvfrom(1024)
-        print(f"Received message from {addr}: {data.decode()}")
-        sock.sendto(b"Hello from the server!", addr)
+    # Receive the server's response
+    data, addr = sock.recvfrom(1024)
+    print(f"Received response from server: {data.decode()}")
 
 
 if __name__ == "__main__":
-    run_server()
+    # Replace with the external IP and port of the server
+    SERVER_IP = "1.145.97.238"
+    SERVER_PORT = 4208
+    run_client(SERVER_IP, SERVER_PORT)
