@@ -1,9 +1,9 @@
 import os
-from platform import uname
+
 
 os.chdir(os.path.dirname(__file__))
 
-message = f'merge to github from {uname().node}'
+message = f'merge to github from kiddy'
 
 
 def push(message):
