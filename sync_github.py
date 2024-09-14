@@ -1,9 +1,8 @@
 import os
 
-
 os.chdir(os.path.dirname(__file__))
 
-message = f'merge to github from kiddy'
+message = f'merge to github from {os.getlogin( )}'
 
 
 def push(message):
