@@ -13,7 +13,6 @@ def decode_sdp(encoded_sdp):
     return base64.urlsafe_b64decode(encoded_sdp.encode('utf-8')).decode('utf-8')
 
 
-
 async def answerer():
     pc = RTCPeerConnection()
 
