@@ -1,5 +1,18 @@
 import asyncio
 from aiortc import RTCPeerConnection, RTCSessionDescription
+import base64
+
+
+# Function to encode SDP offer/answer into a single string
+def encode_sdp(sdp):
+    return base64.urlsafe_b64encode(sdp.encode('utf-8')).decode('utf-8')
+
+
+# Function to decode the encoded SDP back to its original form
+def decode_sdp(encoded_sdp):
+    return base64.urlsafe_b64decode(encoded_sdp.encode('utf-8')).decode('utf-8')
+
+
 
 async def offerer():
     pc = RTCPeerConnection()
@@ -22,10 +35,10 @@ async def offerer():
     await pc.setLocalDescription(offer)
 
     print("Offer sent. Please give this offer to the answerer:")
-    print(pc.localDescription.sdp)
+    print(encode_sdp(pc.localDescription.sdp))
 
     # Wait for the answer to be entered manually
-    sdp_answer = input("Paste the SDP answer here:\n")
+    sdp_answer = decode_sdp(input("Paste the SDP answer here:\n"))
     await pc.setRemoteDescription(RTCSessionDescription(sdp_answer, "answer"))
 
     # Keep the connection open
