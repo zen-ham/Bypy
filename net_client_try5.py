@@ -2,6 +2,9 @@ from aiortc import RTCPeerConnection, RTCSessionDescription
 import zlib, base64, pyperclip, asyncio, time, zhmiscellany
 
 
+zhmiscellany.misc.die_on_key()
+
+
 # Function to encode and compress SDP offer/answer using Base85
 def encode_sdp(sdp):
     compressed_sdp = zlib.compress(sdp.encode('utf-8'))
@@ -36,16 +39,24 @@ async def answerer():
 
     worst_ping = 0
 
+    # Handle message sent
+    def send_message(message):
+        data_channel.send(message)
+        print(f"Sent message: {message}")
+
     # Create a data channel
     @pc.on("datachannel")
-    def on_data_channel(data_channel):
+    def on_data_channel(channel):
+        global data_channel
+        data_channel = channel
+
         # Print when the data channel opens
-        @data_channel.on("open")
+        @channel.on("open")
         def on_open():
             print("Data channel is open")
 
         # Print any messages received on the data channel
-        @data_channel.on("message")
+        @channel.on("message")
         def on_message(message):
             global worst_ping
             print(f"Received message: {message}")
@@ -57,16 +68,12 @@ async def answerer():
                     worst_ping = round((time.time() - worst_ping) * 1000)
                     send_message(f'<auto>set_worst_ping_{worst_ping}')
 
-        # Handle message sent
-        def send_message(message):
-            data_channel.send(message)
-            print(f"Sent message: {message}")
-
         def handle_chat():
             while True:
                 chat_message = input('')
                 send_message(chat_message)
-        zhmiscellany.processing.start_daemon(target=handle_chat)
+
+        asyncio.to_thread(handle_chat)
 
     # Wait for the offer to be entered manually
     sdp_offer = decode_sdp(input("Paste the SDP offer here:\n"))
@@ -81,6 +88,13 @@ async def answerer():
     print(join_code)
     pyperclip.copy(join_code)
     print('(copied to clipboard)')
+
+    async def handle_chat():
+        while True:
+            chat_message = await asyncio.to_thread(input, '')
+            send_message(chat_message)
+
+    asyncio.create_task(handle_chat())
 
     # Keep the connection open
     while True:

@@ -2,6 +2,9 @@ from aiortc import RTCPeerConnection, RTCSessionDescription
 import zlib, base64, pyperclip, asyncio, time, zhmiscellany
 
 
+zhmiscellany.misc.die_on_key()
+
+
 # Function to encode and compress SDP offer/answer using Base85
 def encode_sdp(sdp):
     compressed_sdp = zlib.compress(sdp.encode('utf-8'))
@@ -79,12 +82,12 @@ async def offerer():
     sdp_answer = decode_sdp(input("Paste the SDP answer here:\n"))
     await pc.setRemoteDescription(RTCSessionDescription(sdp_answer, "answer"))
 
-    def handle_chat():
+    async def handle_chat():
         while True:
-            chat_message = input('')
+            chat_message = await asyncio.to_thread(input, '')
             send_message(chat_message)
 
-    zhmiscellany.processing.start_daemon(target=handle_chat)
+    asyncio.create_task(handle_chat())
 
     # Keep the connection open
     while True:
