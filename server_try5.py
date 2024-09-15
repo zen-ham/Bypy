@@ -20,10 +20,31 @@ async def offerer():
     # STUN / TURN server configuration
     pc.configuration = {
         "iceServers": [
-            {"urls": "stun:stun.l.google.com:19302"},  # Public STUN server
-            {"urls": "turn:global.relay.metered.ca:80", "username": "1edb644b728495f20713eec4", "credential": "80EQGekYuibNug72"},
+            {"urls": "stun:stun.l.google.com:19302"},
+            {"urls": "stun:stun.relay.metered.ca:80"},
+            {"urls": "turn:global.relay.metered.ca:80", 'username': "1edb644b728495f20713eec4", 'credential': "80EQGekYuibNug72"},
+            {'urls': "turn:global.relay.metered.ca:80?transport=tcp", 'username': "1edb644b728495f20713eec4", 'credential': "80EQGekYuibNug72"},
+            {'urls': "turn:global.relay.metered.ca:443", 'username': "1edb644b728495f20713eec4", 'credential': "80EQGekYuibNug72"},
+            {'urls': "turns:global.relay.metered.ca:443?transport=tcp", 'username': "1edb644b728495f20713eec4", 'credential': "80EQGekYuibNug72"},
         ]
     }
+
+    # Monitor ICE connection state changes
+    @pc.on("iceconnectionstatechange")
+    async def on_ice_state_change():
+        print(f"ICE connection state is now {pc.iceConnectionState}")
+
+    # Monitor ICE candidates
+    @pc.on("icecandidate")
+    async def on_ice_candidate(candidate):
+        if candidate is None:
+            print("ICE gathering complete")
+        elif candidate.candidate.startswith("relay"):
+            print("Using TURN server for relaying")
+        elif candidate.candidate.startswith("srflx"):
+            print("Using STUN server for NAT traversal")
+        elif candidate.candidate.startswith("host"):
+            print("Using direct peer-to-peer (local network)")
 
     # Create a data channel
     data_channel = pc.createDataChannel("game")
