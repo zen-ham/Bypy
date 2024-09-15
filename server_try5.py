@@ -1,5 +1,5 @@
 from aiortc import RTCPeerConnection, RTCSessionDescription
-import zlib, base64, pyperclip, asyncio
+import zlib, base64, pyperclip, asyncio, time
 
 
 # Function to encode and compress SDP offer/answer using Base85
@@ -33,20 +33,6 @@ async def offerer():
     @pc.on("iceconnectionstatechange")
     async def on_ice_state_change():
         print(f"ICE connection state is now {pc.iceConnectionState}")
-        if pc.iceConnectionState == "completed" or pc.iceConnectionState == "connected":
-            # Check which ICE candidates are being used
-            for transceiver in pc.getTransceivers():
-                ice_transport = transceiver.sender.transport.iceTransport
-                selected_pair = ice_transport.getSelectedCandidatePair()
-                if selected_pair is not None:
-                    local_candidate = selected_pair.local
-                    remote_candidate = selected_pair.remote
-                    print(f"Local candidate type: {local_candidate.type}")
-                    print(f"Remote candidate type: {remote_candidate.type}")
-                    if local_candidate.type == "relay" or remote_candidate.type == "relay":
-                        print("Using TURN server (relay)")
-                    else:
-                        print("Direct or STUN-assisted connection (no TURN)")
 
     # Create a data channel
     data_channel = pc.createDataChannel("game")
@@ -54,13 +40,30 @@ async def offerer():
     # Print when the data channel opens
     @data_channel.on("open")
     def on_open():
+        global worst_ping
         print("Data channel is open")
-        data_channel.send("ping from server")  # Send a ping message
+        send_message("<auto>calculate_ping")  # Send a ping message
+        worst_ping = time.time()
+
+    worst_ping = 0
 
     # Print any messages received on the data channel
     @data_channel.on("message")
     def on_message(message):
+        global worst_ping
         print(f"Received message: {message}")
+        if '<auto>' in message:
+            data = message.split('<auto>')[1]
+            if data == 'calculate_ping':
+                send_message('<auto>calculate_ping_response')
+            elif data == 'calculate_ping_response':
+                worst_ping = round((time.time()-worst_ping)*1000)
+                send_message(f'<auto>set_worst_ping_{worst_ping}')
+
+    # Handle message sent
+    def send_message(message):
+        data_channel.send(message)
+        print(f"Sent message: {message}")
 
     # Create and send an offer
     offer = await pc.createOffer()
@@ -75,6 +78,10 @@ async def offerer():
     # Wait for the answer to be entered manually
     sdp_answer = decode_sdp(input("Paste the SDP answer here:\n"))
     await pc.setRemoteDescription(RTCSessionDescription(sdp_answer, "answer"))
+
+    while True:
+        chat_message = input('')
+        send_message(chat_message)
 
     # Keep the connection open
     while True:

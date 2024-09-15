@@ -1,5 +1,5 @@
 from aiortc import RTCPeerConnection, RTCSessionDescription
-import zlib, base64, pyperclip, asyncio
+import zlib, base64, pyperclip, asyncio, time
 
 
 # Function to encode and compress SDP offer/answer using Base85
@@ -33,35 +33,38 @@ async def answerer():
     @pc.on("iceconnectionstatechange")
     async def on_ice_state_change():
         print(f"ICE connection state is now {pc.iceConnectionState}")
-        if pc.iceConnectionState == "completed" or pc.iceConnectionState == "connected":
-            # Check which ICE candidates are being used
-            for transceiver in pc.getTransceivers():
-                ice_transport = transceiver.sender.transport.iceTransport
-                selected_pair = ice_transport.getSelectedCandidatePair()
-                if selected_pair is not None:
-                    local_candidate = selected_pair.local
-                    remote_candidate = selected_pair.remote
-                    print(f"Local candidate type: {local_candidate.type}")
-                    print(f"Remote candidate type: {remote_candidate.type}")
-                    if local_candidate.type == "relay" or remote_candidate.type == "relay":
-                        print("Using TURN server (relay)")
-                    else:
-                        print("Direct or STUN-assisted connection (no TURN)")
-            print("Using direct peer-to-peer (local network)")
+
+    worst_ping = 0
 
     # Create a data channel
     @pc.on("datachannel")
-    def on_data_channel(channel):
+    def on_data_channel(data_channel):
         # Print when the data channel opens
-        @channel.on("open")
+        @data_channel.on("open")
         def on_open():
             print("Data channel is open")
 
         # Print any messages received on the data channel
-        @channel.on("message")
+        @data_channel.on("message")
         def on_message(message):
+            global worst_ping
             print(f"Received message: {message}")
-            channel.send("pong from client")  # Respond with a pong message
+            if '<auto>' in message:
+                data = message.split('<auto>')[1]
+                if data == 'calculate_ping':
+                    send_message('<auto>calculate_ping_response')
+                elif data == 'calculate_ping_response':
+                    worst_ping = round((time.time() - worst_ping) * 1000)
+                    send_message(f'<auto>set_worst_ping_{worst_ping}')
+
+        # Handle message sent
+        def send_message(message):
+            data_channel.send(message)
+            print(f"Sent message: {message}")
+
+        while True:
+            chat_message = input('')
+            send_message(chat_message)
 
     # Wait for the offer to be entered manually
     sdp_offer = decode_sdp(input("Paste the SDP offer here:\n"))
