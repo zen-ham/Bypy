@@ -1,5 +1,5 @@
 from aiortc import RTCPeerConnection, RTCSessionDescription
-import zlib, base64, pyperclip, asyncio, time
+import zlib, base64, pyperclip, asyncio, time, zhmiscellany
 
 
 # Function to encode and compress SDP offer/answer using Base85
@@ -62,9 +62,11 @@ async def answerer():
             data_channel.send(message)
             print(f"Sent message: {message}")
 
-        while True:
-            chat_message = input('')
-            send_message(chat_message)
+        def handle_chat():
+            while True:
+                chat_message = input('')
+                send_message(chat_message)
+        zhmiscellany.processing.start_daemon(target=handle_chat)
 
     # Wait for the offer to be entered manually
     sdp_offer = decode_sdp(input("Paste the SDP offer here:\n"))
