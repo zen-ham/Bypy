@@ -33,17 +33,20 @@ async def answerer():
     @pc.on("iceconnectionstatechange")
     async def on_ice_state_change():
         print(f"ICE connection state is now {pc.iceConnectionState}")
-
-    # Monitor ICE candidates
-    @pc.on("icecandidate")
-    async def on_ice_candidate(candidate):
-        if candidate is None:
-            print("ICE gathering complete")
-        elif candidate.candidate.startswith("relay"):
-            print("Using TURN server for relaying")
-        elif candidate.candidate.startswith("srflx"):
-            print("Using STUN server for NAT traversal")
-        elif candidate.candidate.startswith("host"):
+        if pc.iceConnectionState == "completed" or pc.iceConnectionState == "connected":
+            # Check which ICE candidates are being used
+            for transceiver in pc.getTransceivers():
+                ice_transport = transceiver.sender.transport.iceTransport
+                selected_pair = ice_transport.getSelectedCandidatePair()
+                if selected_pair is not None:
+                    local_candidate = selected_pair.local
+                    remote_candidate = selected_pair.remote
+                    print(f"Local candidate type: {local_candidate.type}")
+                    print(f"Remote candidate type: {remote_candidate.type}")
+                    if local_candidate.type == "relay" or remote_candidate.type == "relay":
+                        print("Using TURN server (relay)")
+                    else:
+                        print("Direct or STUN-assisted connection (no TURN)")
             print("Using direct peer-to-peer (local network)")
 
     # Create a data channel
