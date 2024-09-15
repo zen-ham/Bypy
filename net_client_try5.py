@@ -1,16 +1,17 @@
-import asyncio
 from aiortc import RTCPeerConnection, RTCSessionDescription
-import base64
+import zlib, base64, pyperclip, asyncio
 
 
-# Function to encode SDP offer/answer into a single string
+# Function to encode and compress SDP offer/answer using Base85
 def encode_sdp(sdp):
-    return base64.urlsafe_b64encode(sdp.encode('utf-8')).decode('utf-8')
+    compressed_sdp = zlib.compress(sdp.encode('utf-8'))
+    return base64.b85encode(compressed_sdp).decode('utf-8')
 
 
-# Function to decode the encoded SDP back to its original form
+# Function to decode and decompress the encoded SDP using Base85
 def decode_sdp(encoded_sdp):
-    return base64.urlsafe_b64decode(encoded_sdp.encode('utf-8')).decode('utf-8')
+    compressed_sdp = base64.b85decode(encoded_sdp.encode('utf-8'))
+    return zlib.decompress(compressed_sdp).decode('utf-8')
 
 
 async def answerer():
@@ -24,13 +25,21 @@ async def answerer():
         ]
     }
 
-    # Handle incoming data channel messages
+    # Create a data channel
     @pc.on("datachannel")
-    def on_datachannel(channel):
-        print(f"Data channel {channel.label} is created")
-        channel.on("message", lambda message: print(f"Received message: {message}"))
+    def on_data_channel(channel):
+        # Print when the data channel opens
+        @channel.on("open")
+        def on_open():
+            print("Data channel is open")
 
-    # Receive the offer from the offerer
+        # Print any messages received on the data channel
+        @channel.on("message")
+        def on_message(message):
+            print(f"Received message: {message}")
+            channel.send("pong from client")  # Respond with a pong message
+
+    # Wait for the offer to be entered manually
     sdp_offer = decode_sdp(input("Paste the SDP offer here:\n"))
     await pc.setRemoteDescription(RTCSessionDescription(sdp_offer, "offer"))
 
@@ -38,8 +47,11 @@ async def answerer():
     answer = await pc.createAnswer()
     await pc.setLocalDescription(answer)
 
+    join_code = encode_sdp(pc.localDescription.sdp)
     print("Answer sent. Please give this answer to the offerer:")
-    print(encode_sdp(pc.localDescription.sdp))
+    print(join_code)
+    pyperclip.copy(join_code)
+    print('(copied to clipboard)')
 
     # Keep the connection open
     while True:
