@@ -1,0 +1,18 @@
+{
+    "pastebin": {
+        "username": "bypy",
+        "password": "bypybypybypy",
+        "api_dev_key": "LHaFjb_-fWkZLNsfMuFEI1XjcJSku9iL",
+        "api_user_key": "cda3e4bc0e7ac04cf9ee4c9ba0704113"
+    },
+    "ice": {
+        "iceServers": [
+            {"urls": "stun:stun.l.google.com:19302"},
+            {"urls": "stun:stun.relay.metered.ca:80"},
+            {"urls": "turn:global.relay.metered.ca:80", "username": "1edb644b728495f20713eec4", "credential": "80EQGekYuibNug72"},
+            {"urls": "turn:global.relay.metered.ca:80?transport=tcp", "username": "1edb644b728495f20713eec4", "credential": "80EQGekYuibNug72"},
+            {"urls": "turn:global.relay.metered.ca:443", "username": "1edb644b728495f20713eec4", "credential": "80EQGekYuibNug72"},
+            {"urls": "turns:global.relay.metered.ca:443?transport=tcp", "username": "1edb644b728495f20713eec4", "credential": "80EQGekYuibNug72"}
+        ]
+    }
+}

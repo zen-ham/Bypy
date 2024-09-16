@@ -74,6 +74,7 @@ async def offerer():
 
     print("Offer sent. Please give this offer to the answerer:")
     join_code = encode_sdp(pc.localDescription.sdp)
+    print(pc.localDescription.sdp)
     print(join_code)
     pyperclip.copy(join_code)
     print('(copied to clipboard)')
@@ -95,3 +96,4 @@ async def offerer():
 
 
 asyncio.run(offerer())
+
