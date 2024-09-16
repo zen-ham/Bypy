@@ -23,14 +23,33 @@ class MultiPeerManager:
         self.connection_data = zhmiscellany.fileio.read_json_file('connection_data.json')
         self.pastebin = zhmiscellany.pastebin.PasteBin(self.connection_data["pastebin"]["api_dev_key"], self.connection_data["pastebin"]["api_user_key"])
 
+    def search_pastebin_titles(self, search):
+        pastes = self.pastebin.list_pastes(1000)
+        for paste in pastes:
+            if search in paste['paste_title']:
+                return self.pastebin.raw_pastes(paste['paste_key']), paste
+
+        raise Exception(f'No paste found for the given search ({search})')
+
+    def send_message(self, connection_id, message):
+        zhmiscellany.processing.start_daemon(target=self.thread_async, args=(self._send_message, (connection_id, message)))
+
+    async def _send_message(self, connection_id, message):
+        self.peer_datachannel_objects[connection_id]['data_channel'].send(message)
+        print(f"Sent to connection {connection_id}: {message}")
+
+    def thread_async(self, function, args):
+        asyncio.run(function(*args))
+
     def create_new_connection(self, session_code):
         connection_id = len(self.peer_datachannel_objects)
-        self.peer_datachannel_objects.append({'data_channel': None, 'is_established': False, 'incoming_packets': [], 'outgoing_packets': [], 'ping': None, 'offer': {'data': None, 'hook': threading.Event()}, 'answer': None})
-        def thread_async(function, args):
-            asyncio.run(function(*args))
-        zhmiscellany.processing.start_daemon(target=thread_async, args=(self._create_new_connection, (connection_id, session_code)))
+        self.peer_datachannel_objects.append({'data_channel': None, 'connection_id': connection_id, 'session_code': session_code, 'is_established': {'data': False, 'hook': threading.Event()}, 'incoming_packets': [], 'outgoing_packets': [], 'ping': None, 'offer': {'data': None, 'hook': threading.Event()}, 'answer': {'data': None, 'hook': threading.Event()}})
 
-    async def _create_new_connection(self, connection_id, session_code):
+        zhmiscellany.processing.start_daemon(target=self.thread_async, args=(self._create_new_connection, (connection_id,)))
+
+    async def _create_new_connection(self, connection_id):
+        print(f'Initializing connection {connection_id}')
+
         pc = RTCPeerConnection()
 
         pc.configuration = self.connection_data['ice']
@@ -38,18 +57,19 @@ class MultiPeerManager:
         data_channel = pc.createDataChannel("p2p")
 
         self.peer_datachannel_objects[connection_id]['data_channel'] = data_channel
-        
+
         @pc.on("iceconnectionstatechange")
         async def on_ice_state_change():
             print(f"Connection {connection_id} state is now {pc.iceConnectionState}")
-        
+
         # Print when the data channel opens
         @data_channel.on("open")
         def on_open():
             global connection_ping
             print(f"Connection {connection_id} was established")
-            self.peer_datachannel_objects[connection_id]['is_established'] = True
-            send_message("<auto>calculate_ping")  # Send a ping message
+            self.peer_datachannel_objects[connection_id]['is_established']['data'] = True
+            self.peer_datachannel_objects[connection_id]['is_established']['hook'].set()
+            self.send_message(connection_id, "<auto>calculate_ping")  # Send a ping message
             connection_ping = time.time()
 
         connection_ping = 0
@@ -58,38 +78,72 @@ class MultiPeerManager:
         @data_channel.on("message")
         def on_message(message):
             global connection_ping
-            self.peer_datachannel_objects[connection_id]['incoming_packets'].append(message)
+            self.peer_datachannel_objects[connection_id]['incoming_packets']['data'].append(message)
+            if len(self.peer_datachannel_objects[connection_id]['incoming_packets']['data']) == 1:  # set and reset the event hook for new incoming message
+                self.peer_datachannel_objects[connection_id]['incoming_packets']['hook'].set()
+                self.peer_datachannel_objects[connection_id]['incoming_packets']['hook'] = threading.Event()
             if type(message) == str:
                 if message.startswith('<auto>'):
                     data = message.split('<auto>')[1]
                     if data == 'calculate_ping':
-                        send_message('<auto>calculate_ping_response')
+                        self.send_message(connection_id, '<auto>calculate_ping_response')
                     elif data == 'calculate_ping_response':
-                        connection_ping = round((time.time() - connection_ping) * 1000)/2
+                        connection_ping = round(((time.time() - connection_ping) * 1000)/2)
                         self.peer_datachannel_objects[connection_id]['ping'] = connection_ping
-                        send_message(f'<auto>set_connection_ping_{connection_ping}')
+                        self.send_message(connection_id, f'<auto>set_connection_ping_{connection_ping}')
                     elif data.startswith('set_connection_ping_'):
                         connection_ping = data.split('_').pop()
                         self.peer_datachannel_objects[connection_id]['ping'] = connection_ping
-
-        # Handle message sent
-        def send_message(message):
-            data_channel.send(message)
-            print(f"Sent message: {message}")
 
         offer = await pc.createOffer()
         await pc.setLocalDescription(offer)
 
         offer_string = encode_sdp(pc.localDescription.sdp)
 
-        self.pastebin.paste(data=offer_string, name=session_code, private=2, expire='10M')
+        self.pastebin.paste(data=offer_string, name=f'{self.peer_datachannel_objects[connection_id]["session_code"]}_offer_{connection_id}', private=2, expire='10M')
 
-        self.peer_datachannel_objects[connection_id]['offer']['data'] = session_code
+        self.peer_datachannel_objects[connection_id]['offer']['data'] = pc.localDescription.sdp
         self.peer_datachannel_objects[connection_id]['offer']['hook'].set()
 
-        await pc.setRemoteDescription(RTCSessionDescription(self.peer_datachannel_objects[connection_id]['answer']['answer'], "answer"))
+        print(f'Connection {connection_id} posted SDP offer')
 
-    async def _connect(self, connection_id, session_code):
+        sdp_answer = None
+        while not sdp_answer:
+            try:
+                sdp_answer, paste = self.search_pastebin_titles(f'{self.peer_datachannel_objects[connection_id]["session_code"]}_answer')
+            except:
+                await asyncio.sleep(1)
+
+        self.pastebin.delete_paste(paste['paste_key'])
+
+        sdp_answer = decode_sdp(sdp_answer)
+
+        await pc.setRemoteDescription(RTCSessionDescription(sdp_answer, "answer"))
+
+        self.peer_datachannel_objects[connection_id]['answer']['data'] = sdp_answer
+        self.peer_datachannel_objects[connection_id]['answer']['hook'].set()
+
+        # Keep the connection open
+        while True:
+            await asyncio.sleep(1)
+
+
+
+
+
+
+
+
+
+
+    def connect(self, session_code):
+        connection_id = len(self.peer_datachannel_objects)
+        self.peer_datachannel_objects.append({'data_channel': None, 'connection_id': connection_id, 'session_code': session_code, 'is_established': {'data': False, 'hook': threading.Event()}, 'incoming_packets': {'data': [], 'hook': threading.Event()}, 'outgoing_packets': [], 'ping': None, 'offer': {'data': None, 'hook': threading.Event()}, 'answer': {'data': None, 'hook': threading.Event()}})
+
+        zhmiscellany.processing.start_daemon(target=self.thread_async, args=(self._connect, (connection_id,)))
+
+    async def _connect(self, connection_id):
+        print(f'Initializing connection {connection_id}')
         pc = RTCPeerConnection()
 
         pc.configuration = self.connection_data['ice']
@@ -100,21 +154,17 @@ class MultiPeerManager:
 
         connection_ping = 0
 
-        # Handle message sent
-        def send_message(message):
-            data_channel.send(message)
-            print(f"Sent message: {message}")
-
         # Create a data channel
         @pc.on("datachannel")
         def on_data_channel(channel):
-            global data_channel
             data_channel = channel
+
+            self.peer_datachannel_objects[connection_id]['data_channel'] = data_channel
 
             # Print when the data channel opens
             @channel.on("open")
             def on_open():
-                print("Data channel is open")
+                print(f"Connection {connection_id} was established")
 
             # Print any messages received on the data channel
             @channel.on("message")
@@ -124,55 +174,123 @@ class MultiPeerManager:
                 if '<auto>' in message:
                     data = message.split('<auto>')[1]
                     if data == 'calculate_ping':
-                        send_message('<auto>calculate_ping_response')
+                        self.send_message(connection_id, '<auto>calculate_ping_response')
                     elif data == 'calculate_ping_response':
-                        connection_ping = round((time.time() - connection_ping) * 1000)
-                        send_message(f'<auto>set_connection_ping_{connection_ping}')
+                        connection_ping = round(((time.time() - connection_ping) * 1000)/2)
+                        self.send_message(connection_id, f'<auto>set_connection_ping_{connection_ping}')
                         self.peer_datachannel_objects[connection_id]['ping'] = connection_ping
                     elif data.startswith('set_connection_ping_'):
                         connection_ping = data.split('_').pop()
                         self.peer_datachannel_objects[connection_id]['ping'] = connection_ping
 
-            def handle_chat():
-                while True:
-                    chat_message = input('')
-                    send_message(chat_message)
+        sdp_offer, paste = self.search_pastebin_titles(f'{self.peer_datachannel_objects[connection_id]["session_code"]}_offer')
+        self.pastebin.delete_paste(paste['paste_key'])
+        sdp_offer = decode_sdp(sdp_offer)
 
-            asyncio.to_thread(handle_chat)
-
-        # Wait for the offer to be entered manually
-        sdp_offer = decode_sdp(input("Paste the SDP offer here:\n"))
         await pc.setRemoteDescription(RTCSessionDescription(sdp_offer, "offer"))
+
+        self.peer_datachannel_objects[connection_id]['offer']['data'] = sdp_offer
+        self.peer_datachannel_objects[connection_id]['offer']['hook'].set()
 
         # Create and send an answer
         answer = await pc.createAnswer()
         await pc.setLocalDescription(answer)
 
+        answer_string = encode_sdp(pc.localDescription.sdp)
 
-        join_code = encode_sdp(pc.localDescription.sdp)
+        self.pastebin.paste(data=answer_string, name=f'{self.peer_datachannel_objects[connection_id]["session_code"]}_answer_{connection_id}', private=2, expire='10M')
 
-        async def handle_chat():
-            while True:
-                chat_message = await asyncio.to_thread(input, '')
-                send_message(chat_message)
+        self.peer_datachannel_objects[connection_id]['answer']['data'] = pc.localDescription.sdp
+        self.peer_datachannel_objects[connection_id]['answer']['hook'].set()
 
-        asyncio.create_task(handle_chat())
+        print(f'Connection {connection_id} posted SDP answer')
+
+        print(paste)
 
         # Keep the connection open
         while True:
             await asyncio.sleep(1)
-    
+
+
+def wait_for_any_event(events):
+    # This shared event will be set by any of the threads
+    shared_event = threading.Event()
+
+    # Function for each thread to wait on its respective event
+    def wait_on_event(event):
+        event.wait()  # Wait for the event to be set
+        shared_event.set()  # Set the shared event when this one is triggered
+
+    # Create a thread for each event and start it
+    threads = []
+    for event in events:
+        t = threading.Thread(target=wait_on_event, args=(event,))
+        threads.append(t)
+        t.start()
+
+    # Block until any of the events has been set (via shared_event)
+    shared_event.wait()
+
+
+def run_chat_server():
+    session_code = zhmiscellany.string.get_universally_unique_string()
+
+    print(f'Your server join code: {session_code}')
+
+    def chat_relay():
+        while True:
+            messages = []
+            forwards = 0
+            if len(ice_handler.peer_datachannel_objects) > 1:
+                for connection in ice_handler.peer_datachannel_objects:
+                    while connection['incoming_packets']:
+                        messages.append([connection['connection_id'], connection['incoming_packets'].pop()])
+
+                for message in messages:
+                    for connection in ice_handler.peer_datachannel_objects:
+                        if connection['connection_id'] != message[0]:
+                            ice_handler.send_message(connection['connection_id'], message[1])
+                            forwards += 1
+
+            event_hooks = []
+            for connection in ice_handler.peer_datachannel_objects:
+                event_hooks.append(connection['incoming_messages']['hook'])
+            wait_for_any_event(event_hooks)
+
+    zhmiscellany.processing.start_daemon(target=chat_relay)
+
+    # maintain 1 free channel at all times to allow for new connections
+    while True:
+        ice_handler.create_new_connection(session_code)
+
+        for instance in ice_handler.peer_datachannel_objects:
+            instance['is_established']['hook'].wait()
+
+
+def run_chat_client():
+    session_code = input('Input session code:')
+    ice_handler.connect(session_code)
+    for connection in ice_handler.peer_datachannel_objects:
+        connection['is_established']['hook'].wait()
+
+    def show_incoming_chat():
+        for connection in ice_handler.peer_datachannel_objects:
+            while connection['incoming_packets']:
+                print(connection['incoming_packets'].pop())
+
+    zhmiscellany.processing.start_daemon(target=show_incoming_chat)
+
+    while True:
+        user_message = input('')
+        for connection in ice_handler.peer_datachannel_objects:
+            ice_handler.send_message(connection['connection_id'], user_message)
 
 
 ice_handler = MultiPeerManager()
 
-# create pastebin with the offer and title and set offer to pastebin key
-# 
+choice = zhmiscellany.misc.decide(['server', 'client'], 'Start as server or client?')
 
-session_code = zhmiscellany.string.get_universally_unique_string()
-
-ice_handler.create_new_connection(session_code)
-
-for instance in ice_handler.peer_datachannel_objects:
-    instance['offer']['hook'].wait()
-    print(instance['offer']['data'])
+if choice == 'server':
+    run_chat_server()
+else:
+    run_chat_client()
