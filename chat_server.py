@@ -63,7 +63,7 @@ class MultiPeerManager:
 
         data_channel = pc.createDataChannel("p2p")
         self.peer_datachannel_objects[connection_id]['data_channel'] = data_channel
-        
+
         # Print when the data channel opens
         @data_channel.on("open")
         def on_open():
@@ -122,10 +122,10 @@ class MultiPeerManager:
 
         sdp_answer = decode_sdp(sdp_answer)
 
-        await pc.setRemoteDescription(RTCSessionDescription(sdp_answer, "answer"))
-
         self.peer_datachannel_objects[connection_id]['answer']['data'] = sdp_answer
         self.peer_datachannel_objects[connection_id]['answer']['hook'].set()
+
+        await pc.setRemoteDescription(RTCSessionDescription(sdp_answer, "answer"))
 
         # Keep the connection open
         while pc.iceConnectionState not in ["closed", "failed", "disconnected"]:
