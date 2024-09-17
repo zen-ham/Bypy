@@ -1,7 +1,5 @@
-import sys
-
 from aiortc import RTCPeerConnection, RTCSessionDescription
-import zlib, base64, pyperclip, asyncio, time, zhmiscellany, threading, traceback
+import zlib, base64, pyperclip, asyncio, time, zhmiscellany, threading, traceback, sys, json
 
 
 # Function to encode and compress SDP offer/answer using Base85
@@ -38,7 +36,7 @@ class MultiPeerManager:
         zhmiscellany.processing.start_daemon(target=self.thread_async, args=(self._send_message, (connection_id, message)))
 
     async def _send_message(self, connection_id, message):
-        self.peer_datachannel_objects[connection_id]['data_channel'].send(message)
+        self.peer_datachannel_objects[connection_id]['data_channel'].send(json.dumps(message))
         print(f"Sent to connection {connection_id}: {message}")
 
     def thread_async(self, function, args):
@@ -75,7 +73,7 @@ class MultiPeerManager:
             self.peer_datachannel_objects[connection_id]['is_established']['data'] = True
             self.num_established_connections += 1
             self.peer_datachannel_objects[connection_id]['is_established']['hook'].set()
-            self.send_message(connection_id, "<auto>calculate_ping")  # Send a ping message
+            self.send_message(connection_id, {'relay': False, 'content': "<auto>calculate_ping"})  # Send a ping message
             connection_ping = time.time()
 
         connection_ping = 0
@@ -84,18 +82,19 @@ class MultiPeerManager:
         @data_channel.on("message")
         def on_message(message):
             global connection_ping
+            message = json.loads(message)
             self.peer_datachannel_objects[connection_id]['incoming_packets']['data'].append(message)
             self.peer_datachannel_objects[connection_id]['incoming_packets']['hook'].set()
             self.peer_datachannel_objects[connection_id]['incoming_packets']['hook'] = threading.Event()
-            if type(message) == str:
-                if message.startswith('<auto>'):
-                    data = message.split('<auto>')[1]
+            if type(message['content']) == str:
+                if message['content'].startswith('<auto>'):
+                    data = message['content'].split('<auto>')[1]
                     if data == 'calculate_ping':
-                        self.send_message(connection_id, '<auto>calculate_ping_response')
+                        self.send_message(connection_id, {'relay': False, 'content': '<auto>calculate_ping_response'})
                     elif data == 'calculate_ping_response':
                         connection_ping = round(((time.time() - connection_ping) * 1000)/2)
                         self.peer_datachannel_objects[connection_id]['ping'] = connection_ping
-                        self.send_message(connection_id, f'<auto>set_connection_ping_{connection_ping}')
+                        self.send_message(connection_id, {'relay': False, 'content': f'<auto>set_connection_ping_{connection_ping}'})
                     elif data.startswith('set_connection_ping_'):
                         connection_ping = data.split('_').pop()
                         self.peer_datachannel_objects[connection_id]['ping'] = connection_ping
@@ -185,16 +184,17 @@ class MultiPeerManager:
             @channel.on("message")
             def on_message(message):
                 global connection_ping
+                message = json.loads(message)
                 self.peer_datachannel_objects[connection_id]['incoming_packets']['data'].append(message)
                 self.peer_datachannel_objects[connection_id]['incoming_packets']['hook'].set()
                 self.peer_datachannel_objects[connection_id]['incoming_packets']['hook'] = threading.Event()
-                if '<auto>' in message:
-                    data = message.split('<auto>')[1]
+                if '<auto>' in message['content']:
+                    data = message['content'].split('<auto>')[1]
                     if data == 'calculate_ping':
-                        self.send_message(connection_id, '<auto>calculate_ping_response')
+                        self.send_message(connection_id, {'relay': False, 'content': '<auto>calculate_ping_response'})
                     elif data == 'calculate_ping_response':
                         connection_ping = round(((time.time() - connection_ping) * 1000)/2)
-                        self.send_message(connection_id, f'<auto>set_connection_ping_{connection_ping}')
+                        self.send_message(connection_id, {'relay': False, 'content': f'<auto>set_connection_ping_{connection_ping}'})
                         self.peer_datachannel_objects[connection_id]['ping'] = connection_ping
                     elif data.startswith('set_connection_ping_'):
                         connection_ping = data.split('_').pop()
@@ -266,20 +266,24 @@ def run_chat_server():
     pyperclip.copy(session_code)
 
     def chat_relay():
+        time.sleep(0.1)  # just make sure ice_handler has some sort of connection created
         messages = []
         while True:
 
             for connection in ice_handler.peer_datachannel_objects:
                 while connection['incoming_packets']['data']:
                     received_message = connection['incoming_packets']['data'].pop(0)
-                    messages.append([connection['connection_id'], received_message])
-                    print(f'Received on connection {connection["connection_id"]}: {received_message}')
+                    if received_message['relay']:
+                        messages.append([connection['connection_id'], received_message])
+                        print(f'Received on connection {connection["connection_id"]}: {received_message}')
 
-            if ice_handler.num_established_connections > 1:
+            print(ice_handler.num_established_connections)
+            if ice_handler.num_established_connections > 1:  # if there's more then one person to forward chat to
                 forwards = 0
                 for message in messages:
                     for connection in ice_handler.peer_datachannel_objects:
-                        if connection['connection_id'] != message[0] and instance['is_established']['data']:
+                        if connection['connection_id'] != message[0] and connection['is_established']['data']:
+                            message[1]['relay'] = False
                             ice_handler.send_message(connection['connection_id'], message[1])
                             forwards += 1
                 messages = []
@@ -324,7 +328,7 @@ def run_chat_client():
         user_message = input('')
         for connection in ice_handler.peer_datachannel_objects:
             if connection['is_established']['data']:
-                ice_handler.send_message(connection['connection_id'], user_message)
+                ice_handler.send_message(connection['connection_id'], {'relay': True, 'content': user_message})
 
 
 ice_handler = MultiPeerManager()
