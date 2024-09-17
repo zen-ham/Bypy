@@ -1,7 +1,7 @@
 import sys
 
 from aiortc import RTCPeerConnection, RTCSessionDescription
-import zlib, base64, pyperclip, asyncio, time, zhmiscellany, threading
+import zlib, base64, pyperclip, asyncio, time, zhmiscellany, threading, traceback
 
 
 # Function to encode and compress SDP offer/answer using Base85
@@ -24,6 +24,7 @@ class MultiPeerManager:
         self.pastebin = zhmiscellany.pastebin.Pasteee(self.connection_data['pasteee']['app_key'])
         #self.paste_expire = '10M'
         self.paste_expire = 60*10
+        self.num_established_connections = 0
 
     def search_pastebin_titles(self, search):
         pastes = self.pastebin.list_pastes(1000)
@@ -45,9 +46,12 @@ class MultiPeerManager:
 
     def create_new_connection(self, session_code):
         connection_id = len(self.peer_datachannel_objects)
-        self.peer_datachannel_objects.append({'data_channel': None, 'connection_id': connection_id, 'session_code': session_code, 'is_established': {'data': False, 'hook': threading.Event()}, 'incoming_packets': [], 'outgoing_packets': [], 'ping': None, 'offer': {'data': None, 'hook': threading.Event()}, 'answer': {'data': None, 'hook': threading.Event()}})
+        self.peer_datachannel_objects.append(self.new_connection_object(connection_id, session_code))
 
         zhmiscellany.processing.start_daemon(target=self.thread_async, args=(self._create_new_connection, (connection_id,)))
+
+    def new_connection_object(self, connection_id, session_code):
+        return {'data_channel': None, 'connection_id': connection_id, 'session_code': session_code, 'is_established': {'data': False, 'hook': threading.Event()}, 'incoming_packets': {'data': [], 'hook': threading.Event()}, 'outgoing_packets': [], 'ping': None, 'offer': {'data': None, 'hook': threading.Event()}, 'answer': {'data': None, 'hook': threading.Event()}}
 
     async def _create_new_connection(self, connection_id):
         print(f'Initializing connection {connection_id}')
@@ -69,6 +73,7 @@ class MultiPeerManager:
             global connection_ping
             print(f"Connection {connection_id} was established")
             self.peer_datachannel_objects[connection_id]['is_established']['data'] = True
+            self.num_established_connections += 1
             self.peer_datachannel_objects[connection_id]['is_established']['hook'].set()
             self.send_message(connection_id, "<auto>calculate_ping")  # Send a ping message
             connection_ping = time.time()
@@ -130,6 +135,7 @@ class MultiPeerManager:
         while pc.iceConnectionState not in ["closed", "failed", "disconnected"]:
             await asyncio.sleep(1)
         self.peer_datachannel_objects[connection_id]['is_established']['data'] = False
+        self.num_established_connections -= 1
         print(f'Exiting connection {connection_id} thread')
 
 
@@ -143,7 +149,7 @@ class MultiPeerManager:
 
     def connect(self, session_code):
         connection_id = len(self.peer_datachannel_objects)
-        self.peer_datachannel_objects.append({'data_channel': None, 'connection_id': connection_id, 'session_code': session_code, 'is_established': {'data': False, 'hook': threading.Event()}, 'incoming_packets': {'data': [], 'hook': threading.Event()}, 'outgoing_packets': [], 'ping': None, 'offer': {'data': None, 'hook': threading.Event()}, 'answer': {'data': None, 'hook': threading.Event()}})
+        self.peer_datachannel_objects.append(self.new_connection_object(connection_id, session_code))
 
         zhmiscellany.processing.start_daemon(target=self.thread_async, args=(self._connect, (connection_id,)))
 
@@ -157,7 +163,9 @@ class MultiPeerManager:
         async def on_ice_state_change():
             print(f"Connection {connection_id} state is now {pc.iceConnectionState}")
             if pc.iceConnectionState == 'completed':
+                print(f"Connection {connection_id} was established")
                 self.peer_datachannel_objects[connection_id]['is_established']['data'] = True
+                self.num_established_connections += 1
                 self.peer_datachannel_objects[connection_id]['is_established']['hook'].set()
 
         connection_ping = 0
@@ -178,7 +186,10 @@ class MultiPeerManager:
             @channel.on("message")
             def on_message(message):
                 global connection_ping
-                print(f"Received message: {message}")
+                self.peer_datachannel_objects[connection_id]['incoming_packets']['data'].append(message)
+                if len(self.peer_datachannel_objects[connection_id]['incoming_packets']['data']) == 1:  # set and reset the event hook for new incoming message
+                    self.peer_datachannel_objects[connection_id]['incoming_packets']['hook'].set()
+                    self.peer_datachannel_objects[connection_id]['incoming_packets']['hook'] = threading.Event()
                 if '<auto>' in message and False:
                     data = message.split('<auto>')[1]
                     if data == 'calculate_ping':
@@ -222,6 +233,7 @@ class MultiPeerManager:
         while pc.iceConnectionState not in ["closed", "failed", "disconnected"]:
             await asyncio.sleep(1)
         self.peer_datachannel_objects[connection_id]['is_established']['data'] = False
+        self.num_established_connections -= 1
         print(f'Exiting connection {connection_id} thread')
 
 
@@ -257,10 +269,15 @@ def run_chat_server():
         while True:
             messages = []
             forwards = 0
-            if len(ice_handler.peer_datachannel_objects) > 1:
+
+            for connection in ice_handler.peer_datachannel_objects:
+                for received_message in connection['incoming_packets']['data']:
+                    print(f'Received on connection {connection["connection_id"]}: {received_message}')
+
+            if ice_handler.num_established_connections > 1:
                 for connection in ice_handler.peer_datachannel_objects:
                     while connection['incoming_packets']['data']:
-                        messages.append([connection['connection_id'], connection['incoming_packets']['data'].pop()])
+                        messages.append([connection['connection_id'], connection['incoming_packets']['data'].pop(0)])
 
                 for message in messages:
                     for connection in ice_handler.peer_datachannel_objects:
@@ -292,14 +309,20 @@ def run_chat_client():
         connection['is_established']['hook'].wait()
 
     def show_incoming_chat():
-        for connection in ice_handler.peer_datachannel_objects:
-            while connection['incoming_packets']['data']:
-                print(connection['incoming_packets']['data'].pop())
+        while True:
+            for connection in ice_handler.peer_datachannel_objects:
+                while connection['incoming_packets']['data']:
+                    print(f"Received on connection {connection['connection_id']}: {connection['incoming_packets']['data'].pop(0)}")
+            
+            event_hooks = []
+            for connection in ice_handler.peer_datachannel_objects:
+                event_hooks.append(connection['incoming_messages']['hook'])
+            wait_for_any_event(event_hooks)
 
     zhmiscellany.processing.start_daemon(target=show_incoming_chat)
 
     while True:
-        user_message = input('message:')
+        user_message = input('')
         for connection in ice_handler.peer_datachannel_objects:
             if connection['is_established']['data']:
                 ice_handler.send_message(connection['connection_id'], user_message)
