@@ -1,8 +1,7 @@
+import sys
+
 from aiortc import RTCPeerConnection, RTCSessionDescription
 import zlib, base64, pyperclip, asyncio, time, zhmiscellany, threading
-
-
-zhmiscellany.misc.die_on_key()
 
 
 # Function to encode and compress SDP offer/answer using Base85
@@ -116,16 +115,16 @@ class MultiPeerManager:
             try:
                 sdp_answer, paste = self.search_pastebin_titles(f'{self.peer_datachannel_objects[connection_id]["session_code"]}_answer')
             except:
-                await asyncio.sleep(1)
+                await asyncio.sleep(2)  # wait some seconds between checking to respect the api a little
 
         self.pastebin.delete_paste(paste['paste_key'])
 
         sdp_answer = decode_sdp(sdp_answer)
 
+        await pc.setRemoteDescription(RTCSessionDescription(sdp_answer, "answer"))
+
         self.peer_datachannel_objects[connection_id]['answer']['data'] = sdp_answer
         self.peer_datachannel_objects[connection_id]['answer']['hook'].set()
-
-        await pc.setRemoteDescription(RTCSessionDescription(sdp_answer, "answer"))
 
         # Keep the connection open
         while pc.iceConnectionState not in ["closed", "failed", "disconnected"]:
@@ -157,6 +156,9 @@ class MultiPeerManager:
         @pc.on("iceconnectionstatechange")
         async def on_ice_state_change():
             print(f"Connection {connection_id} state is now {pc.iceConnectionState}")
+            if pc.iceConnectionState == 'completed':
+                self.peer_datachannel_objects[connection_id]['is_established']['data'] = True
+                self.peer_datachannel_objects[connection_id]['is_established']['hook'].set()
 
         connection_ping = 0
 
@@ -177,7 +179,7 @@ class MultiPeerManager:
             def on_message(message):
                 global connection_ping
                 print(f"Received message: {message}")
-                if '<auto>' in message:
+                if '<auto>' in message and False:
                     data = message.split('<auto>')[1]
                     if data == 'calculate_ping':
                         self.send_message(connection_id, '<auto>calculate_ping_response')
@@ -244,9 +246,12 @@ def wait_for_any_event(events):
 
 
 def run_chat_server():
+    zhmiscellany.misc.die_on_key()
+
     session_code = zhmiscellany.string.get_universally_unique_string()
 
-    print(f'Your server join code: {session_code}')
+    print(f'Your server join code: {session_code} (copied to clipboard)')
+    pyperclip.copy(session_code)
 
     def chat_relay():
         while True:
@@ -254,12 +259,12 @@ def run_chat_server():
             forwards = 0
             if len(ice_handler.peer_datachannel_objects) > 1:
                 for connection in ice_handler.peer_datachannel_objects:
-                    while connection['incoming_packets']:
-                        messages.append([connection['connection_id'], connection['incoming_packets'].pop()])
+                    while connection['incoming_packets']['data']:
+                        messages.append([connection['connection_id'], connection['incoming_packets']['data'].pop()])
 
                 for message in messages:
                     for connection in ice_handler.peer_datachannel_objects:
-                        if connection['connection_id'] != message[0]:
+                        if connection['connection_id'] != message[0] and instance['is_established']['data']:
                             ice_handler.send_message(connection['connection_id'], message[1])
                             forwards += 1
 
@@ -277,11 +282,10 @@ def run_chat_server():
         for instance in ice_handler.peer_datachannel_objects:
             instance['is_established']['hook'].wait()
 
-        while True:
-            time.sleep(1)
-
 
 def run_chat_client():
+    zhmiscellany.misc.die_on_key('f8')
+
     session_code = input('Input session code:')
     ice_handler.connect(session_code)
     for connection in ice_handler.peer_datachannel_objects:
@@ -289,20 +293,29 @@ def run_chat_client():
 
     def show_incoming_chat():
         for connection in ice_handler.peer_datachannel_objects:
-            while connection['incoming_packets']:
-                print(connection['incoming_packets'].pop())
+            while connection['incoming_packets']['data']:
+                print(connection['incoming_packets']['data'].pop())
 
     zhmiscellany.processing.start_daemon(target=show_incoming_chat)
 
     while True:
-        user_message = input('')
+        user_message = input('message:')
         for connection in ice_handler.peer_datachannel_objects:
-            ice_handler.send_message(connection['connection_id'], user_message)
+            if connection['is_established']['data']:
+                ice_handler.send_message(connection['connection_id'], user_message)
 
 
 ice_handler = MultiPeerManager()
 
-choice = zhmiscellany.misc.decide(['server', 'client'], 'Start as server or client?')
+choice = None
+if len(sys.argv) != 1:
+    if sys.argv[1] == 'server':
+        choice = sys.argv[1]
+    elif sys.argv[1] == 'client':
+        choice = sys.argv[1]
+
+if not choice:
+    choice = zhmiscellany.misc.decide(['server', 'client'], 'Start as server or client?')
 
 if choice == 'server':
     run_chat_server()

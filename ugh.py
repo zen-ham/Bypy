@@ -1,4 +1,4 @@
-import zhmiscellany
+import zhmiscellany, sys
 
 connection_data = zhmiscellany.fileio.read_json_file('connection_data.json')
 
@@ -14,11 +14,13 @@ seed = zhmiscellany.string.get_universally_unique_string()
 #    print(r)
 pastebin = zhmiscellany.pastebin.Pasteee(connection_data['pasteee']['app_key'])
 
+print(sys.argv)
+
 #r = pastebin.paste(data='test', name=f'hi', expire=60*10)
 #print(r)
 #r = pastebin.paste(data=f'{seed}.'*10, name=f'{seed}_offer_{seed}')
-r = pastebin.raw_pastes('2lzvw')
+#r = pastebin.raw_pastes('2lzvw')
 #r = pastebin.list_pastes(1000)
-print(r)
+#print(r)
 
 #print(pastebin.list_pastes(1000))
