@@ -85,9 +85,8 @@ class MultiPeerManager:
         def on_message(message):
             global connection_ping
             self.peer_datachannel_objects[connection_id]['incoming_packets']['data'].append(message)
-            if len(self.peer_datachannel_objects[connection_id]['incoming_packets']['data']) == 1:  # set and reset the event hook for new incoming message
-                self.peer_datachannel_objects[connection_id]['incoming_packets']['hook'].set()
-                self.peer_datachannel_objects[connection_id]['incoming_packets']['hook'] = threading.Event()
+            self.peer_datachannel_objects[connection_id]['incoming_packets']['hook'].set()
+            self.peer_datachannel_objects[connection_id]['incoming_packets']['hook'] = threading.Event()
             if type(message) == str:
                 if message.startswith('<auto>'):
                     data = message.split('<auto>')[1]
@@ -187,10 +186,9 @@ class MultiPeerManager:
             def on_message(message):
                 global connection_ping
                 self.peer_datachannel_objects[connection_id]['incoming_packets']['data'].append(message)
-                if len(self.peer_datachannel_objects[connection_id]['incoming_packets']['data']) == 1:  # set and reset the event hook for new incoming message
-                    self.peer_datachannel_objects[connection_id]['incoming_packets']['hook'].set()
-                    self.peer_datachannel_objects[connection_id]['incoming_packets']['hook'] = threading.Event()
-                if '<auto>' in message and False:
+                self.peer_datachannel_objects[connection_id]['incoming_packets']['hook'].set()
+                self.peer_datachannel_objects[connection_id]['incoming_packets']['hook'] = threading.Event()
+                if '<auto>' in message:
                     data = message.split('<auto>')[1]
                     if data == 'calculate_ping':
                         self.send_message(connection_id, '<auto>calculate_ping_response')
@@ -238,6 +236,8 @@ class MultiPeerManager:
 
 
 def wait_for_any_event(events):
+    if not events:
+        return
     # This shared event will be set by any of the threads
     shared_event = threading.Event()
 
@@ -266,28 +266,27 @@ def run_chat_server():
     pyperclip.copy(session_code)
 
     def chat_relay():
+        messages = []
         while True:
-            messages = []
-            forwards = 0
 
             for connection in ice_handler.peer_datachannel_objects:
-                for received_message in connection['incoming_packets']['data']:
+                while connection['incoming_packets']['data']:
+                    received_message = connection['incoming_packets']['data'].pop(0)
+                    messages.append([connection['connection_id'], received_message])
                     print(f'Received on connection {connection["connection_id"]}: {received_message}')
 
             if ice_handler.num_established_connections > 1:
-                for connection in ice_handler.peer_datachannel_objects:
-                    while connection['incoming_packets']['data']:
-                        messages.append([connection['connection_id'], connection['incoming_packets']['data'].pop(0)])
-
+                forwards = 0
                 for message in messages:
                     for connection in ice_handler.peer_datachannel_objects:
                         if connection['connection_id'] != message[0] and instance['is_established']['data']:
                             ice_handler.send_message(connection['connection_id'], message[1])
                             forwards += 1
+                messages = []
 
             event_hooks = []
             for connection in ice_handler.peer_datachannel_objects:
-                event_hooks.append(connection['incoming_messages']['hook'])
+                event_hooks.append(connection['incoming_packets']['hook'])
             wait_for_any_event(event_hooks)
 
     zhmiscellany.processing.start_daemon(target=chat_relay)
@@ -313,10 +312,10 @@ def run_chat_client():
             for connection in ice_handler.peer_datachannel_objects:
                 while connection['incoming_packets']['data']:
                     print(f"Received on connection {connection['connection_id']}: {connection['incoming_packets']['data'].pop(0)}")
-            
+
             event_hooks = []
             for connection in ice_handler.peer_datachannel_objects:
-                event_hooks.append(connection['incoming_messages']['hook'])
+                event_hooks.append(connection['incoming_packets']['hook'])
             wait_for_any_event(event_hooks)
 
     zhmiscellany.processing.start_daemon(target=show_incoming_chat)
