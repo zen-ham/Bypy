@@ -3,7 +3,11 @@
         "username": "bypy",
         "password": "bypybypybypy",
         "api_dev_key": "LHaFjb_-fWkZLNsfMuFEI1XjcJSku9iL",
-        "api_user_key": "cda3e4bc0e7ac04cf9ee4c9ba0704113"
+        "api_user_key": "504dd6eff6c48f835888e558c811dbd9"
+    },
+    "pasteee": {
+        "key": "aUa06Zcp4LHfLYVymOHCKRGUFbxymQlkn3oIHCFLE",
+        "app_key": "urfLmsa70AnFb3szn7aOPmsuwSbfsK8k3yHdr3E5k"
     },
     "ice": {
         "iceServers": [

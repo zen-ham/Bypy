@@ -21,7 +21,10 @@ class MultiPeerManager:
     def __init__(self):
         self.peer_datachannel_objects = []
         self.connection_data = zhmiscellany.fileio.read_json_file('connection_data.json')
-        self.pastebin = zhmiscellany.pastebin.PasteBin(self.connection_data["pastebin"]["api_dev_key"], self.connection_data["pastebin"]["api_user_key"])
+        #self.pastebin = zhmiscellany.pastebin.PasteBin(self.connection_data["pastebin"]["api_dev_key"], self.connection_data["pastebin"]["api_user_key"])
+        self.pastebin = zhmiscellany.pastebin.Pasteee(self.connection_data['pasteee']['app_key'])
+        #self.paste_expire = '10M'
+        self.paste_expire = 60*10
 
     def search_pastebin_titles(self, search):
         pastes = self.pastebin.list_pastes(1000)
@@ -54,14 +57,13 @@ class MultiPeerManager:
 
         pc.configuration = self.connection_data['ice']
 
-        data_channel = pc.createDataChannel("p2p")
-
-        self.peer_datachannel_objects[connection_id]['data_channel'] = data_channel
-
         @pc.on("iceconnectionstatechange")
         async def on_ice_state_change():
             print(f"Connection {connection_id} state is now {pc.iceConnectionState}")
 
+        data_channel = pc.createDataChannel("p2p")
+        self.peer_datachannel_objects[connection_id]['data_channel'] = data_channel
+        
         # Print when the data channel opens
         @data_channel.on("open")
         def on_open():
@@ -100,7 +102,9 @@ class MultiPeerManager:
 
         offer_string = encode_sdp(pc.localDescription.sdp)
 
-        self.pastebin.paste(data=offer_string, name=f'{self.peer_datachannel_objects[connection_id]["session_code"]}_offer_{connection_id}', private=2, expire='10M')
+        offer_name = f'{self.peer_datachannel_objects[connection_id]["session_code"]}_offer_{connection_id}'
+        print(f'Making offer with internal name {offer_name}')
+        self.pastebin.paste(data=offer_string, name=offer_name, expire=self.paste_expire)
 
         self.peer_datachannel_objects[connection_id]['offer']['data'] = pc.localDescription.sdp
         self.peer_datachannel_objects[connection_id]['offer']['hook'].set()
@@ -124,8 +128,10 @@ class MultiPeerManager:
         self.peer_datachannel_objects[connection_id]['answer']['hook'].set()
 
         # Keep the connection open
-        while True:
+        while pc.iceConnectionState not in ["closed", "failed", "disconnected"]:
             await asyncio.sleep(1)
+        self.peer_datachannel_objects[connection_id]['is_established']['data'] = False
+        print(f'Exiting connection {connection_id} thread')
 
 
 
@@ -183,7 +189,10 @@ class MultiPeerManager:
                         connection_ping = data.split('_').pop()
                         self.peer_datachannel_objects[connection_id]['ping'] = connection_ping
 
-        sdp_offer, paste = self.search_pastebin_titles(f'{self.peer_datachannel_objects[connection_id]["session_code"]}_offer')
+        search = f'{self.peer_datachannel_objects[connection_id]["session_code"]}_offer'
+        print(f'Searching for {search}')
+        sdp_offer, paste = self.search_pastebin_titles(search)
+        print(f'Found {paste["paste_title"]}')
         self.pastebin.delete_paste(paste['paste_key'])
         sdp_offer = decode_sdp(sdp_offer)
 
@@ -198,18 +207,20 @@ class MultiPeerManager:
 
         answer_string = encode_sdp(pc.localDescription.sdp)
 
-        self.pastebin.paste(data=answer_string, name=f'{self.peer_datachannel_objects[connection_id]["session_code"]}_answer_{connection_id}', private=2, expire='10M')
+        answer_name = f'{self.peer_datachannel_objects[connection_id]["session_code"]}_answer_{connection_id}'
+        print(f'Making offer with internal name {answer_name}')
+        self.pastebin.paste(data=answer_string, name=answer_name, expire=self.paste_expire)
 
         self.peer_datachannel_objects[connection_id]['answer']['data'] = pc.localDescription.sdp
         self.peer_datachannel_objects[connection_id]['answer']['hook'].set()
 
         print(f'Connection {connection_id} posted SDP answer')
 
-        print(paste)
-
         # Keep the connection open
-        while True:
+        while pc.iceConnectionState not in ["closed", "failed", "disconnected"]:
             await asyncio.sleep(1)
+        self.peer_datachannel_objects[connection_id]['is_established']['data'] = False
+        print(f'Exiting connection {connection_id} thread')
 
 
 def wait_for_any_event(events):
@@ -265,6 +276,9 @@ def run_chat_server():
 
         for instance in ice_handler.peer_datachannel_objects:
             instance['is_established']['hook'].wait()
+
+        while True:
+            time.sleep(1)
 
 
 def run_chat_client():
