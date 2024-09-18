@@ -251,8 +251,6 @@ def join_room():
     print(code)
 
 
-
-
 def room_selection_screen():
     screen_width, screen_height = screen.get_size()
     input_box_width, input_box_height = 200, 40
