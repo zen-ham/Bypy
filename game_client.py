@@ -284,15 +284,18 @@ def room_selection_screen():
     input_box_height = scale_value(input_box_base_height, BASE_HEIGHT, HEIGHT)
     host_button_width = scale_value(host_button_base_width, BASE_WIDTH, WIDTH)
     host_button_height = scale_value(host_button_base_height, BASE_HEIGHT, HEIGHT)
+
+    button_vertical_padding = 60
+    button_vertical_padding = scale_value(button_vertical_padding, BASE_HEIGHT, HEIGHT)
+
+    input_box_x = (WIDTH/2) - (input_box_width/2)
+    input_box_y = (HEIGHT/2) - (input_box_height/2)
     
-    input_box_x = (WIDTH - input_box_width)
-    input_box_y = HEIGHT // 2 - input_box_height - 20
+    join_button_x = (WIDTH/2) - (host_button_width/2)
+    join_button_y = ((HEIGHT/2) - (host_button_width/2)) + (button_vertical_padding*2) # move this button down a bit
     
-    join_button_x = scale_value((WIDTH - host_button_width) // 2, BASE_HEIGHT, HEIGHT)
-    join_button_y = HEIGHT // 2 + 20
-    
-    host_button_x = (WIDTH - host_button_width) // 2
-    host_button_y = HEIGHT // 2 + 100
+    host_button_x = (WIDTH/2) - (host_button_width/2)
+    host_button_y = ((HEIGHT/2) - (host_button_width/2)) + (button_vertical_padding*3)
 
     input_box = TextBox(input_box_x, input_box_y, input_box_width, input_box_height)
     join_button = Button("Join Room", join_button_x, join_button_y, host_button_width, host_button_height, join_room)
