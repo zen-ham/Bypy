@@ -290,7 +290,7 @@ def room_selection_screen():
 
         screen.blit(room_code_text, (text_x, text_y))
 
-
+        
 
         input_box.draw(screen)
         join_button.draw(screen)
