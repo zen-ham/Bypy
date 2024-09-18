@@ -48,8 +48,15 @@ class MultiPeerManager:
 
         zhmiscellany.processing.start_daemon(target=self.thread_async, args=(self._create_new_connection, (connection_id,)))
 
+    def wait_for_connection(self):
+        event_hooks = []
+        for instance in self.peer_datachannel_objects:
+            event_hooks.append(instance['is_established']['hook'])
+        for event_hook in event_hooks:
+            event_hook.wait()
+
     def new_connection_object(self, connection_id, session_code):
-        return {'data_channel': None, 'connection_id': connection_id, 'session_code': session_code, 'is_established': {'data': False, 'hook': threading.Event()}, 'incoming_packets': {'data': [], 'hook': threading.Event()}, 'outgoing_packets': [], 'ping': None, 'offer': {'data': None, 'hook': threading.Event()}, 'answer': {'data': None, 'hook': threading.Event()}}
+        return {'data_channel': None, 'connection_id': connection_id, 'server_side_id': {'data': None, 'hook': threading.Event()}, 'session_code': session_code, 'is_established': {'data': False, 'hook': threading.Event()}, 'incoming_packets': {'data': [], 'hook': threading.Event()}, 'outgoing_packets': [], 'ping': None, 'offer': {'data': None, 'hook': threading.Event()}, 'answer': {'data': None, 'hook': threading.Event()}}
 
     async def _create_new_connection(self, connection_id):
         print(f'Initializing connection {connection_id}')
@@ -73,7 +80,9 @@ class MultiPeerManager:
             self.peer_datachannel_objects[connection_id]['is_established']['data'] = True
             self.num_established_connections += 1
             self.peer_datachannel_objects[connection_id]['is_established']['hook'].set()
+            self.peer_datachannel_objects[connection_id]['is_established']['hook'] = threading.Event()
             self.send_message(connection_id, {'relay': False, 'content': "<auto>calculate_ping"})  # Send a ping message
+            self.send_message(connection_id, {'relay': False, 'content': f"<auto>set_connection_id_{connection_id}"})  # Send set client id
             connection_ping = time.time()
 
         connection_ping = 0
@@ -89,9 +98,7 @@ class MultiPeerManager:
             if type(message['content']) == str:
                 if message['content'].startswith('<auto>'):
                     data = message['content'].split('<auto>')[1]
-                    if data == 'calculate_ping':
-                        self.send_message(connection_id, {'relay': False, 'content': '<auto>calculate_ping_response'})
-                    elif data == 'calculate_ping_response':
+                    if data == 'calculate_ping_response':
                         connection_ping = round(((time.time() - connection_ping) * 1000)/2)
                         self.peer_datachannel_objects[connection_id]['ping'] = connection_ping
                         self.send_message(connection_id, {'relay': False, 'content': f'<auto>set_connection_ping_{connection_ping}'})
@@ -133,6 +140,7 @@ class MultiPeerManager:
         while pc.iceConnectionState not in ["closed", "failed", "disconnected"]:
             await asyncio.sleep(1)
         self.peer_datachannel_objects[connection_id]['is_established']['data'] = False
+        self.peer_datachannel_objects[connection_id]['is_established']['hook'].set()
         self.num_established_connections -= 1
         print(f'Exiting connection {connection_id} thread')
 
@@ -165,6 +173,7 @@ class MultiPeerManager:
                 self.peer_datachannel_objects[connection_id]['is_established']['data'] = True
                 self.num_established_connections += 1
                 self.peer_datachannel_objects[connection_id]['is_established']['hook'].set()
+                self.peer_datachannel_objects[connection_id]['is_established']['hook'] = threading.Event()
 
         connection_ping = 0
 
@@ -193,13 +202,12 @@ class MultiPeerManager:
                         data = message['content'].split('<auto>')[1]
                         if data == 'calculate_ping':
                             self.send_message(connection_id, {'relay': False, 'content': '<auto>calculate_ping_response'})
-                        elif data == 'calculate_ping_response':
-                            connection_ping = round(((time.time() - connection_ping) * 1000)/2)
-                            self.send_message(connection_id, {'relay': False, 'content': f'<auto>set_connection_ping_{connection_ping}'})
-                            self.peer_datachannel_objects[connection_id]['ping'] = connection_ping
                         elif data.startswith('set_connection_ping_'):
                             connection_ping = data.split('_').pop()
                             self.peer_datachannel_objects[connection_id]['ping'] = connection_ping
+                        elif data.startswith('set_connection_id_'):
+                            self.peer_datachannel_objects[connection_id]['server_side_id']['data'] = data.split('_').pop()
+                            self.peer_datachannel_objects[connection_id]['server_side_id']['hook'].set()
 
         search = f'{self.peer_datachannel_objects[connection_id]["session_code"]}_offer'
         print(f'Searching for {search}')
@@ -232,5 +240,6 @@ class MultiPeerManager:
         while pc.iceConnectionState not in ["closed", "failed", "disconnected"]:
             await asyncio.sleep(1)
         self.peer_datachannel_objects[connection_id]['is_established']['data'] = False
+        self.peer_datachannel_objects[connection_id]['is_established']['hook'].set()
         self.num_established_connections -= 1
         print(f'Exiting connection {connection_id} thread')

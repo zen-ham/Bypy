@@ -1,4 +1,4 @@
-import math, sys, pygame, random, pyperclip
+import math, sys, pygame, random, pyperclip, threading
 from ice_manager import MultiPeerManager
 
 pygame.init()
@@ -142,10 +142,11 @@ def switch_player():
     if players:
         current_player_index = (current_player_index + 1) % len(players)
 
-def add_player():
+def add_player(player_id):
     if len(players) < max_players:
         new_x = 100 + len(players) * 100
-        new_player = new_player = Player(new_x, HEIGHT - 150, [BLUE, RED, GREEN, BLACK][len(players) % 4], len(players))
+
+        new_player = Player(new_x, HEIGHT - 150, [BLUE, RED, GREEN, BLACK][len(players) % 4], player_id)
         players.append(new_player)
 
 def handle_pvp_collisions():
@@ -190,9 +191,9 @@ class TextBox:
         self.FONT = pygame.font.Font(None, 36)
         self.txt_surface = self.FONT.render(self.text, True, self.color)
         self.max_length = 9
+        self.code = ''
 
     def handle_event(self, event):
-        global code
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.rect.collidepoint(event.pos):
                 self.active = not self.active
@@ -203,7 +204,7 @@ class TextBox:
         if event.type == pygame.KEYDOWN:
             if self.active:
                 if (event.key == pygame.K_RETURN):
-                    code = self.text
+                    self.code = self.text
                     print(f"Room code entered: {self.text}")
                     return True
                 elif event.key == pygame.K_BACKSPACE:
@@ -215,7 +216,7 @@ class TextBox:
                 elif len(self.text) < self.max_length:
                     self.text += event.unicode
                 self.text = self.text[:self.max_length]
-                code = self.text
+                self.code = self.text
                 self.txt_surface = self.FONT.render(self.text, True, self.color)
         return False
 
@@ -243,13 +244,19 @@ class Button:
                 return True
         return False
 
+
 def host_room():
     print("Hosting room...")
+
 
 def join_room():
     global code
     print("Joining Room...")
     print(code)
+
+
+
+
 def room_selection_screen():
     screen_width, screen_height = screen.get_size()
     input_box_width, input_box_height = 200, 40
@@ -266,38 +273,50 @@ def room_selection_screen():
     host_button = Button("Host Room", host_button_x, host_button_y, host_button_width, host_button_height, host_room)
 
     selecting_room = True
+    joined_room = False
 
-    while selecting_room:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
+    while not joined_room:
+        while selecting_room:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
 
-            room_code_entered = input_box.handle_event(event)
-            join_button_clicked = join_button.handle_event(event)
-            host_button_clicked = host_button.handle_event(event)
+                room_code_entered = input_box.handle_event(event)
+                join_button_clicked = join_button.handle_event(event)
+                host_button_clicked = host_button.handle_event(event)
 
-            if room_code_entered or host_button_clicked or join_button_clicked:
-                selecting_room = False
+                if room_code_entered or host_button_clicked or join_button_clicked:
+                    selecting_room = False
 
-        screen.fill((50, 50, 50))
-        FONT = pygame.font.Font(None, 36)
-        room_code_text = FONT.render("Enter Room Code:", True, WHITE)
+            screen.fill((50, 50, 50))
+            FONT = pygame.font.Font(None, 36)
+            room_code_text = FONT.render("Enter Room Code:", True, WHITE)
 
-        text_width, text_height = room_code_text.get_size()
-        text_x = (screen_width - text_width) // 2
-        text_y = input_box_y - text_height - 20
+            text_width, text_height = room_code_text.get_size()
+            text_x = (screen_width - text_width) // 2
+            text_y = input_box_y - text_height - 20
 
-        screen.blit(room_code_text, (text_x, text_y))
+            screen.blit(room_code_text, (text_x, text_y))
+
+            input_box.draw(screen)
+            join_button.draw(screen)
+            host_button.draw(screen)
+
+            pygame.display.flip()
+            clock.tick(FPS)
+
+            code = input_box.code
+
+        ice_handler.connect(code)
+        ice_handler.wait_for_connection()
+        for connection in ice_handler.peer_datachannel_objects:
+            if connection['is_established']['data']:
+                joined_room = connection['connection_id']
+
+    return joined_room
 
 
-
-        input_box.draw(screen)
-        join_button.draw(screen)
-        host_button.draw(screen)
-
-        pygame.display.flip()
-        clock.tick(FPS)
 
 players = []
 yellow_block_exists = True
@@ -305,21 +324,22 @@ yellow_block_exists = True
 running = True
 input_box = TextBox(200, 150, 200, 40)
 host_button = Button("Host a Room", 200, 250, 200, 50, host_room)
-def main_game():
+def main_game(room_id):
     global yellow_block_exists
 
     running = True
-    add_player()
+
+    ice_handler.peer_datachannel_objects[room_id]['server_side_id']['hook'].wait()
+
+    controlled_player_id = ice_handler.peer_datachannel_objects[room_id]['server_side_id']['data']
+
+    add_player(controlled_player_id)
+
     while running:
         screen.fill(WHITE)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_p:
-                    switch_player()
-                if event.key == pygame.K_i:
-                    add_player()
 
         keys = pygame.key.get_pressed()
         for i, player in enumerate(players):
@@ -344,11 +364,23 @@ def main_game():
             pygame.draw.rect(screen, YELLOW, yellow_block)
 
         display_player_coords()
+
+        ice_handler.send_message(room_id, {'relay': True, 'content': {'player_id': controlled_player_id, 'xy': player_coords[controlled_player_id]}})
+
+        for packet in ice_handler.peer_datachannel_objects[room_id]['incoming_packets']['data']:
+            if type(packet['content']) == dict:
+                packet_content_dict = packet['content']
+                inc_pid = packet_content_dict['player_id']
+                if inc_pid not in player_coords:
+                    add_player(inc_pid)
+                player_coords[inc_pid] = packet_content_dict['xy']
+
+
         pygame.display.flip()
         clock.tick(FPS)
 
 if __name__ == "__main__":
-    room_selection_screen()
-    main_game()
+    room_id = room_selection_screen()
+    main_game(room_id)
 
     pygame.quit()

@@ -54,6 +54,9 @@ def run_chat_server():
                             ice_handler.send_message(connection['connection_id'], message[1])
                             forwards += 1
                 messages = []
+            else:
+                # throw away packets if there's no onw to send them to
+                messages = []
 
             event_hooks = []
             for connection in ice_handler.peer_datachannel_objects:
@@ -66,51 +69,10 @@ def run_chat_server():
     while True:
         ice_handler.create_new_connection(session_code)
 
-        for instance in ice_handler.peer_datachannel_objects:
-            instance['is_established']['hook'].wait()
-
-
-def run_chat_client():
-    zhmiscellany.misc.die_on_key('f8')
-
-    session_code = input('Input session code:')
-    ice_handler.connect(session_code)
-    for connection in ice_handler.peer_datachannel_objects:
-        connection['is_established']['hook'].wait()
-
-    def show_incoming_chat():
-        while True:
-            for connection in ice_handler.peer_datachannel_objects:
-                while connection['incoming_packets']['data']:
-                    print(f"Received on connection {connection['connection_id']}: {connection['incoming_packets']['data'].pop(0)}")
-
-            event_hooks = []
-            for connection in ice_handler.peer_datachannel_objects:
-                event_hooks.append(connection['incoming_packets']['hook'])
-            wait_for_any_event(event_hooks)
-
-    zhmiscellany.processing.start_daemon(target=show_incoming_chat)
-
-    while True:
-        user_message = input('')
-        for connection in ice_handler.peer_datachannel_objects:
-            if connection['is_established']['data']:
-                ice_handler.send_message(connection['connection_id'], {'relay': True, 'content': user_message})
+        ice_handler.wait_for_connection()
 
 
 ice_handler = MultiPeerManager()
 
-choice = None
-if len(sys.argv) != 1:
-    if sys.argv[1] == 'server':
-        choice = sys.argv[1]
-    elif sys.argv[1] == 'client':
-        choice = sys.argv[1]
 
-if not choice:
-    choice = zhmiscellany.misc.decide(['server', 'client'], 'Start as server or client?')
-
-if choice == 'server':
-    run_chat_server()
-else:
-    run_chat_client()
+run_chat_server()
