@@ -337,6 +337,8 @@ def main_game(room_id):
 
     controlled_player_id = ice_handler.peer_datachannel_objects[room_id]['server_side_id']['data']
 
+    print(f'Your id: {controlled_player_id}')
+
     add_player(controlled_player_id)
 
     while running:
