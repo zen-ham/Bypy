@@ -9,6 +9,7 @@ WIDTH, HEIGHT = info.current_w, info.current_h
 BASE_WIDTH, BASE_HEIGHT = 1920, 1080
 def scale_value(value, base_value, actual_value):
     return int(value * (actual_value / base_value))
+
 def generate_random_map():
     platforms = []
     for _ in range(random.randint(3, 6)):
@@ -32,10 +33,7 @@ lobby_platforms = [
     ),
 ]
 
-# Generate a random PvP map with scaled platforms
 pvp_map_platforms = generate_random_map()
-
-# Example Pygame loop (optional)
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("ByPy")
 
@@ -69,7 +67,7 @@ ice_handler = MultiPeerManager()
 
 def randomcolor(color):
     random_object = random.Random()
-    random_object.seed(color)
+    random_object.seed(color*5)
     primary_color = random_object.choice([0, 1, 2])
     secondary_color = random_object.choice([i for i in range(3) if i != primary_color])
     rgb = [0, 0, 0]
