@@ -23,6 +23,8 @@ class MultiPeerManager:
         #self.paste_expire = '10M'
         self.paste_expire = 60*10
         self.num_established_connections = 0
+        self.processing_send = threading.Event()
+        self.processing_send.set()
 
     def search_pastebin_titles(self, search):
         pastes = self.pastebin.list_pastes(1000)
@@ -36,11 +38,14 @@ class MultiPeerManager:
         zhmiscellany.processing.start_daemon(target=self.thread_async, args=(self._send_message, (connection_id, message)))
 
     async def _send_message(self, connection_id, message):
+        self.processing_send.wait()
+        self.processing_send = threading.Event()
         data_channel = self.peer_datachannel_objects[connection_id]['data_channel']
         buf_before = data_channel.bufferedAmount
         data_channel.send(json.dumps(message))
         buf_after = data_channel.bufferedAmount
-        #print(f"{buf_before} {buf_after} Sent to connection {connection_id}: {message}")
+        self.processing_send.set()
+        print(f"{buf_before} {buf_after} Sent to connection {connection_id}: {message}")
 
     def thread_async(self, function, args):
         asyncio.run(function(*args))

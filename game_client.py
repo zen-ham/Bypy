@@ -398,7 +398,9 @@ def main_game(room_id):
 
         display_player_coords()
 
-        if mode != 'test':
+        if mode == 'test':
+            pass
+        else:
             ice_handler.send_message(room_id, {'relay': True, 'content': {'player_id': controlled_player_id, 'xy': (players[controlled_player_id].x, players[controlled_player_id].y)}})
 
             while ice_handler.peer_datachannel_objects[room_id]['incoming_packets']['data']:
