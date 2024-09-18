@@ -357,9 +357,12 @@ def main_game(room_id):
 
     running = True
 
-    ice_handler.peer_datachannel_objects[room_id]['server_side_id']['hook'].wait()
+    if mode == 'test':
+        controlled_player_id = 0
+    else:
+        ice_handler.peer_datachannel_objects[room_id]['server_side_id']['hook'].wait()
 
-    controlled_player_id = ice_handler.peer_datachannel_objects[room_id]['server_side_id']['data']
+        controlled_player_id = ice_handler.peer_datachannel_objects[room_id]['server_side_id']['data']
 
     print(f'Your id: {controlled_player_id}')
 
@@ -395,21 +398,31 @@ def main_game(room_id):
 
         display_player_coords()
 
-        ice_handler.send_message(room_id, {'relay': True, 'content': {'player_id': controlled_player_id, 'xy': (players[controlled_player_id].x, players[controlled_player_id].y)}})
+        if mode != 'test':
+            ice_handler.send_message(room_id, {'relay': True, 'content': {'player_id': controlled_player_id, 'xy': (players[controlled_player_id].x, players[controlled_player_id].y)}})
 
-        while ice_handler.peer_datachannel_objects[room_id]['incoming_packets']['data']:
-            packet = ice_handler.peer_datachannel_objects[room_id]['incoming_packets']['data'].pop(0)
-            if type(packet['content']) == dict:
-                packet_content_dict = packet['content']
-                inc_pid = packet_content_dict['player_id']
-                if inc_pid not in players:
-                    add_player(inc_pid)
-                players[inc_pid].x, players[inc_pid].y = packet_content_dict['xy']
+            while ice_handler.peer_datachannel_objects[room_id]['incoming_packets']['data']:
+                packet = ice_handler.peer_datachannel_objects[room_id]['incoming_packets']['data'].pop(0)
+                if type(packet['content']) == dict:
+                    packet_content_dict = packet['content']
+                    inc_pid = packet_content_dict['player_id']
+                    if inc_pid not in players:
+                        add_player(inc_pid)
+                    players[inc_pid].x, players[inc_pid].y = packet_content_dict['xy']
         pygame.display.flip()
         clock.tick(FPS)
 
+
 if __name__ == "__main__":
-    room_id = room_selection_screen()
+    mode = None
+    if len(sys.argv) != 1:
+        if sys.argv[1] == 'test':
+            mode = sys.argv[1]
+
+    if mode == 'test':
+        room_id = 0
+    else:
+        room_id = room_selection_screen()
     main_game(room_id)
 
     pygame.quit()
