@@ -82,8 +82,8 @@ current_player_index = 0
 
 class Player:
     def __init__(self, x, y, color, player_id):
-        self.x = x
-        self.y = y
+        self.x = scale_value(x, BASE_WIDTH, WIDTH)
+        self.y = scale_value(y, BASE_HEIGHT, HEIGHT)
         self.color = color
         self.vel_x = 0
         self.vel_y = 0
@@ -396,7 +396,7 @@ def main_game(room_id):
                 inc_pid = packet_content_dict['player_id']
                 if inc_pid not in players:
                     add_player(inc_pid)
-                scale_value(players[inc_pid].x, BASE_WIDTH, WIDTH), scale_value(players[inc_pid].y, BASE_HEIGHT, HEIGHT) = packet_content_dict['xy']
+                players[inc_pid].x, players[inc_pid].y = packet_content_dict['xy']
         pygame.display.flip()
         clock.tick(FPS)
 
