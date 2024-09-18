@@ -1,5 +1,9 @@
-import math, sys, pygame, random, pyperclip, threading
+import os
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
+import math, sys, pygame, random, pyperclip, threading, zhmiscellany
 from ice_manager import MultiPeerManager
+
+zhmiscellany.misc.die_on_key('f8')
 
 pygame.init()
 
