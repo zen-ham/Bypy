@@ -12,7 +12,7 @@ RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 YELLOW = (255, 255, 0)
 BLACK = (0, 0, 0)
-
+#COLORS = (YELLOW, BLUE, GREEN, RED)
 clock = pygame.time.Clock()
 FPS = 10
 player_width, player_height = 50, 50
@@ -34,7 +34,17 @@ yellow_block = pygame.Rect(WIDTH - 150, HEIGHT - 100, 100, 50)
 # ice stuff
 ice_handler = MultiPeerManager()
 
-
+def randomcolor(color):
+    random_object = random.Random()
+    random_object.seed(color)
+    primary_color = random_object.choice([0, 1, 2])
+    secondary_color = random_object.choice([i for i in range(3) if i != primary_color])
+    rgb = [0, 0, 0]
+    rgb[primary_color] = random_object.randint(200, 255)
+    rgb[secondary_color] = random_object.randint(0, 55)
+    rgb[3 - primary_color - secondary_color] = random_object.randint(50, 200)
+    return tuple(rgb)
+    
 def generate_random_map():
     platforms = []
     for _ in range(random.randint(3, 6)):
@@ -142,7 +152,7 @@ class Player:
 def add_player(player_id):
     new_x = 100 + len(players) * 100
 
-    new_player = Player(new_x, HEIGHT - 150, [BLUE, RED, GREEN, BLACK][len(players) % 4], player_id)
+    new_player = Player(new_x, HEIGHT - 150, randomcolor(player_id), player_id)
     players[player_id] = new_player
 
 #def handle_pvp_collisions():
