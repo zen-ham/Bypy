@@ -44,7 +44,6 @@ def run_chat_server():
                         messages.append([connection['connection_id'], received_message])
                         print(f'Received on connection {connection["connection_id"]}: {received_message}')
 
-            print(ice_handler.num_established_connections)
             if ice_handler.num_established_connections > 1:  # if there's more then one person to forward chat to
                 forwards = 0
                 for message in messages:

@@ -36,7 +36,9 @@ class MultiPeerManager:
         zhmiscellany.processing.start_daemon(target=self.thread_async, args=(self._send_message, (connection_id, message)))
 
     async def _send_message(self, connection_id, message):
-        self.peer_datachannel_objects[connection_id]['data_channel'].send(json.dumps(message))
+        data_channel = self.peer_datachannel_objects[connection_id]['data_channel']
+        print(data_channel.bufferedAmount)
+        data_channel.send(json.dumps(message))
         print(f"Sent to connection {connection_id}: {message}")
 
     def thread_async(self, function, args):
