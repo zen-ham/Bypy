@@ -188,17 +188,18 @@ class MultiPeerManager:
                 self.peer_datachannel_objects[connection_id]['incoming_packets']['data'].append(message)
                 self.peer_datachannel_objects[connection_id]['incoming_packets']['hook'].set()
                 self.peer_datachannel_objects[connection_id]['incoming_packets']['hook'] = threading.Event()
-                if '<auto>' in message['content']:
-                    data = message['content'].split('<auto>')[1]
-                    if data == 'calculate_ping':
-                        self.send_message(connection_id, {'relay': False, 'content': '<auto>calculate_ping_response'})
-                    elif data == 'calculate_ping_response':
-                        connection_ping = round(((time.time() - connection_ping) * 1000)/2)
-                        self.send_message(connection_id, {'relay': False, 'content': f'<auto>set_connection_ping_{connection_ping}'})
-                        self.peer_datachannel_objects[connection_id]['ping'] = connection_ping
-                    elif data.startswith('set_connection_ping_'):
-                        connection_ping = data.split('_').pop()
-                        self.peer_datachannel_objects[connection_id]['ping'] = connection_ping
+                if type(message['content']) == str:
+                    if '<auto>' in message['content']:
+                        data = message['content'].split('<auto>')[1]
+                        if data == 'calculate_ping':
+                            self.send_message(connection_id, {'relay': False, 'content': '<auto>calculate_ping_response'})
+                        elif data == 'calculate_ping_response':
+                            connection_ping = round(((time.time() - connection_ping) * 1000)/2)
+                            self.send_message(connection_id, {'relay': False, 'content': f'<auto>set_connection_ping_{connection_ping}'})
+                            self.peer_datachannel_objects[connection_id]['ping'] = connection_ping
+                        elif data.startswith('set_connection_ping_'):
+                            connection_ping = data.split('_').pop()
+                            self.peer_datachannel_objects[connection_id]['ping'] = connection_ping
 
         search = f'{self.peer_datachannel_objects[connection_id]["session_code"]}_offer'
         print(f'Searching for {search}')
