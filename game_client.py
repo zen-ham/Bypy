@@ -243,7 +243,7 @@ class TextBox:
         return False
 
     def draw(self, screen):
-        screen.blit(self.txt_surface, (scale_value(self.rect.x + 5, BASE_WIDTH, WIDTH), scale_value(self.rect.y + 5, BASE_HEIGHT, HEIGHT)))
+        screen.blit(self.txt_surface, (self.rect.x + 5, self.rect.y + 5))
         pygame.draw.rect(screen, self.color, self.rect, 2)
 
 class Button:
@@ -257,7 +257,7 @@ class Button:
 
     def draw(self, screen):
         pygame.draw.rect(screen, self.color, self.rect)
-        screen.blit(self.txt_surface, (scale_value(self.rect.x + 10, BASE_WIDTH, WIDTH), scale_value(self.rect.y + 10, BASE_HEIGHT, HEIGHT)))
+        screen.blit(self.txt_surface, (self.rect.x + 10, self.rect.y + 10))
 
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
