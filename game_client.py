@@ -30,6 +30,7 @@ pvp_enabled = False
 current_map = 'lobby'
 yellow_block = pygame.Rect(WIDTH - 150, HEIGHT - 100, 100, 50)
 
+
 def generate_random_map():
     platforms = []
     for _ in range(random.randint(3, 6)):
@@ -39,6 +40,7 @@ def generate_random_map():
         y = random.randint(HEIGHT // 3, HEIGHT - 100)
         platforms.append(pygame.Rect(x, y, width, height))
     return platforms
+
 
 lobby_platforms = [
     pygame.Rect(200, HEIGHT - 100, 400, 20),
@@ -65,7 +67,7 @@ class Player:
 
     def handle_input(self, keys):
         if keys[pygame.K_a]:
-            self.vel_x = -player_speeds
+            self.vel_x = -player_speed
         elif keys[pygame.K_d]:
             self.vel_x = player_speed
         else:
