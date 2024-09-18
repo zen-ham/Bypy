@@ -64,7 +64,7 @@ class Player:
 
     def handle_input(self, keys):
         if keys[pygame.K_a]:
-            self.vel_x = -player_speed
+            self.vel_x = -player_speeds
         elif keys[pygame.K_d]:
             self.vel_x = player_speed
         else:
