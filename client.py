@@ -270,15 +270,12 @@ def room_selection_screen():
                 selecting_room = False
 
         screen.fill((50, 50, 50))
-
-        # Render "Enter Room Code" text, center it
         FONT = pygame.font.Font(None, 36)
         room_code_text = FONT.render("Enter Room Code:", True, WHITE)
 
-        # Center the text
         text_width, text_height = room_code_text.get_size()
         text_x = (screen_width - text_width) // 2
-        text_y = input_box_y - text_height - 20  # Slightly above the input box
+        text_y = input_box_y - text_height - 20
 
         screen.blit(room_code_text, (text_x, text_y))
 
@@ -337,9 +334,8 @@ def main_game():
         pygame.display.flip()
         clock.tick(FPS)
 
-# Entry point
 if __name__ == "__main__":
-    room_selection_screen()  # Ask for room code or hosting before starting
-    main_game()  # Start the actual game after room selection
+    room_selection_screen()
+    main_game()
 
     pygame.quit()
