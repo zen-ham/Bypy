@@ -2,7 +2,40 @@ import math, sys, pygame, random, pyperclip, threading
 from ice_manager import MultiPeerManager
 
 pygame.init()
-WIDTH, HEIGHT = 1920, 1080
+
+# Get the display info
+info = pygame.display.Info()
+WIDTH, HEIGHT = info.current_w, info.current_h
+BASE_WIDTH, BASE_HEIGHT = 1920, 1080
+def scale_value(value, base_value, actual_value):
+    return int(value * (actual_value / base_value))
+def generate_random_map():
+    platforms = []
+    for _ in range(random.randint(3, 6)):
+        base_width = random.randint(200, 400)
+        base_height = 20
+        base_x = random.randint(0, BASE_WIDTH - base_width)
+        base_y = random.randint(BASE_HEIGHT // 3, BASE_HEIGHT - 100)
+        width = scale_value(base_width, BASE_WIDTH, WIDTH)
+        height = scale_value(base_height, BASE_HEIGHT, HEIGHT)
+        x = scale_value(base_x, BASE_WIDTH, WIDTH)
+        y = scale_value(base_y, BASE_HEIGHT, HEIGHT)
+        platforms.append(pygame.Rect(x, y, width, height))
+    return platforms
+
+lobby_platforms = [
+    pygame.Rect(
+        scale_value(200, BASE_WIDTH, WIDTH), 
+        scale_value(BASE_HEIGHT - 100, BASE_HEIGHT, HEIGHT), 
+        scale_value(400, BASE_WIDTH, WIDTH), 
+        scale_value(20, BASE_HEIGHT, HEIGHT)
+    ),
+]
+
+# Generate a random PvP map with scaled platforms
+pvp_map_platforms = generate_random_map()
+
+# Example Pygame loop (optional)
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("ByPy")
 
@@ -45,23 +78,6 @@ def randomcolor(color):
     rgb[3 - primary_color - secondary_color] = random_object.randint(50, 200)
     return tuple(rgb)
     
-def generate_random_map():
-    platforms = []
-    for _ in range(random.randint(3, 6)):
-        width = random.randint(200, 400)
-        height = 20
-        x = random.randint(0, WIDTH - width)
-        y = random.randint(HEIGHT // 3, HEIGHT - 100)
-        platforms.append(pygame.Rect(x, y, width, height))
-    return platforms
-
-
-lobby_platforms = [
-    pygame.Rect(200, HEIGHT - 100, 400, 20),
-]
-
-pvp_map_platforms = generate_random_map()
-
 current_player_index = 0
 
 class Player:
@@ -150,9 +166,9 @@ class Player:
 #        current_player_index = (current_player_index + 1) % len(players)
 
 def add_player(player_id):
-    new_x = 100 + len(players) * 100
+    new_x = scale_value(100 + len(players) * 100, BASE_WIDTH, WIDTH)
 
-    new_player = Player(new_x, HEIGHT - 150, randomcolor(player_id), player_id)
+    new_player = Player(new_x, scale_value(HEIGHT - 150, BASE_HEIGHT, HEIGHT), randomcolor(player_id), player_id)
     players[player_id] = new_player
 
 #def handle_pvp_collisions():
@@ -380,9 +396,7 @@ def main_game(room_id):
                 inc_pid = packet_content_dict['player_id']
                 if inc_pid not in players:
                     add_player(inc_pid)
-                players[inc_pid].x, players[inc_pid].y = packet_content_dict['xy']
-
-
+                scale_value(players[inc_pid].x, BASE_WIDTH, WIDTH), scale_value(players[inc_pid].y, BASE_HEIGHT, HEIGHT) = packet_content_dict['xy']
         pygame.display.flip()
         clock.tick(FPS)
 
