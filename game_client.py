@@ -14,7 +14,7 @@ YELLOW = (255, 255, 0)
 BLACK = (0, 0, 0)
 
 clock = pygame.time.Clock()
-FPS = 60
+FPS = 10
 player_width, player_height = 50, 50
 player_speed = 5
 jump_strength = 15
