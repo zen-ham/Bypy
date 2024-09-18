@@ -82,8 +82,8 @@ current_player_index = 0
 
 class Player:
     def __init__(self, x, y, color, player_id):
-        self.x = scale_value(x, BASE_WIDTH, WIDTH)
-        self.y = scale_value(y, BASE_HEIGHT, HEIGHT)
+        self.x = x
+        self.y = y
         self.color = color
         self.vel_x = 0
         self.vel_y = 0
