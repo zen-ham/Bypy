@@ -1,4 +1,5 @@
 import math, sys, pygame, random, pyperclip
+from ice_manager import MultiPeerManager
 
 pygame.init()
 WIDTH, HEIGHT = 1920, 1080
@@ -31,6 +32,9 @@ current_map = 'lobby'
 global code
 code = ''
 yellow_block = pygame.Rect(WIDTH - 150, HEIGHT - 100, 100, 50)
+
+# ice stuff
+ice_handler = MultiPeerManager()
 
 
 def generate_random_map():
@@ -285,6 +289,8 @@ def room_selection_screen():
         text_y = input_box_y - text_height - 20
 
         screen.blit(room_code_text, (text_x, text_y))
+
+
 
         input_box.draw(screen)
         join_button.draw(screen)
