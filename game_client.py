@@ -57,8 +57,8 @@ class Player:
         self.is_jumping = False
         self.hp = player_hp
         self.rect = pygame.Rect(self.x, self.y, player_width, player_height)
-        self.wrecking_ball_pos = (self.x, self.y + chain_length)
-        self.wrecking_ball_vel = [0, 0]
+        #self.wrecking_ball_pos = (self.x, self.y + chain_length)
+        #self.wrecking_ball_vel = [0, 0]
         self.angle = 0
         self.player_id = player_id
 
@@ -82,7 +82,7 @@ class Player:
         self.y += self.vel_y
         self.rect.topleft = (self.x, self.y)
 
-        self.update_wrecking_ball()
+        #self.update_wrecking_ball()
         self.handle_collisions()
         player_coords[self.player_id] = (self.x, self.y)
         if self.y + player_height > HEIGHT:
@@ -125,8 +125,8 @@ class Player:
         pygame.draw.rect(screen, self.color, self.rect)
         pygame.draw.rect(screen, RED, (self.x, self.y - 10, player_width, 5))
         pygame.draw.rect(screen, GREEN, (self.x, self.y - 10, player_width * (self.hp / player_hp), 5))
-        pygame.draw.line(screen, BLACK, self.rect.center, self.wrecking_ball_pos, 5)
-        pygame.draw.circle(screen, BLACK, (int(self.wrecking_ball_pos[0]), int(self.wrecking_ball_pos[1])), wrecking_ball_radius)
+        #pygame.draw.line(screen, BLACK, self.rect.center, self.wrecking_ball_pos, 5)
+        #pygame.draw.circle(screen, BLACK, (int(self.wrecking_ball_pos[0]), int(self.wrecking_ball_pos[1])), wrecking_ball_radius)
 
 def switch_player():
     global current_player_index
