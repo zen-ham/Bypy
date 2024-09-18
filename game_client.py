@@ -243,7 +243,7 @@ class TextBox:
         return False
 
     def draw(self, screen):
-        screen.blit(self.txt_surface, (self.rect.x + 5, self.rect.y + 5))
+        screen.blit(self.txt_surface, (scale_value(self.rect.x + 5, BASE_WIDTH, WIDTH), scale_value(self.rect.y + 5, BASE_HEIGHT, HEIGHT)))
         pygame.draw.rect(screen, self.color, self.rect, 2)
 
 class Button:
@@ -257,7 +257,7 @@ class Button:
 
     def draw(self, screen):
         pygame.draw.rect(screen, self.color, self.rect)
-        screen.blit(self.txt_surface, (self.rect.x + 10, self.rect.y + 10))
+        screen.blit(self.txt_surface, (scale_value(self.rect.x + 10, BASE_WIDTH, WIDTH), scale_value(self.rect.y + 10, BASE_HEIGHT, HEIGHT)))
 
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -278,15 +278,21 @@ def join_room():
 
 
 def room_selection_screen():
-    screen_width, screen_height = screen.get_size()
-    input_box_width, input_box_height = 200, 40
-    host_button_width, host_button_height = 200, 50
-    input_box_x = (screen_width - input_box_width) // 2
-    input_box_y = screen_height // 2 - input_box_height - 20
-    join_button_x = (screen_width - host_button_width) // 2
-    join_button_y = screen_height // 2 + 20
-    host_button_x = (screen_width - host_button_width) // 2
-    host_button_y = screen_height // 2 + 100
+    input_box_base_width, input_box_base_height = 200, 40
+    host_button_base_width, host_button_base_height = 200, 50
+    input_box_width = scale_value(input_box_base_width, BASE_WIDTH, WIDTH)
+    input_box_height = scale_value(input_box_base_height, BASE_HEIGHT, HEIGHT)
+    host_button_width = scale_value(host_button_base_width, BASE_WIDTH, WIDTH)
+    host_button_height = scale_value(host_button_base_height, BASE_HEIGHT, HEIGHT)
+    
+    input_box_x = (WIDTH - input_box_width)
+    input_box_y = HEIGHT // 2 - input_box_height - 20
+    
+    join_button_x = scale_value((WIDTH - host_button_width) // 2, BASE_HEIGHT, HEIGHT)
+    join_button_y = HEIGHT // 2 + 20
+    
+    host_button_x = (WIDTH - host_button_width) // 2
+    host_button_y = HEIGHT // 2 + 100
 
     input_box = TextBox(input_box_x, input_box_y, input_box_width, input_box_height)
     join_button = Button("Join Room", join_button_x, join_button_y, host_button_width, host_button_height, join_room)
@@ -314,8 +320,9 @@ def room_selection_screen():
             room_code_text = FONT.render("Enter Room Code:", True, WHITE)
 
             text_width, text_height = room_code_text.get_size()
-            text_x = (screen_width - text_width) // 2
+            text_x = (WIDTH - text_width) // 2
             text_y = input_box_y - text_height - 20
+            
 
             screen.blit(room_code_text, (text_x, text_y))
 
@@ -335,8 +342,6 @@ def room_selection_screen():
                 joined_room = connection['connection_id']
 
     return joined_room
-
-
 
 players = {}
 yellow_block_exists = True
