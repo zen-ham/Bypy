@@ -40,7 +40,7 @@ class MultiPeerManager:
         buf_before = data_channel.bufferedAmount
         data_channel.send(json.dumps(message))
         buf_after = data_channel.bufferedAmount
-        print(f"{buf_before} {buf_after} Sent to connection {connection_id}: {message}")
+        #print(f"{buf_before} {buf_after} Sent to connection {connection_id}: {message}")
 
     def thread_async(self, function, args):
         asyncio.run(function(*args))
