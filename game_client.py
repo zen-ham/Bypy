@@ -371,7 +371,8 @@ def main_game(room_id):
 
         ice_handler.send_message(room_id, {'relay': True, 'content': {'player_id': controlled_player_id, 'xy': (players[controlled_player_id].x, players[controlled_player_id].y)}})
 
-        for packet in ice_handler.peer_datachannel_objects[room_id]['incoming_packets']['data']:
+        while ice_handler.peer_datachannel_objects[room_id]['incoming_packets']['data']:
+            packet = ice_handler.peer_datachannel_objects[room_id]['incoming_packets']['data'].pop(0)
             if type(packet['content']) == dict:
                 packet_content_dict = packet['content']
                 inc_pid = packet_content_dict['player_id']
