@@ -186,12 +186,12 @@ class TextBox:
     def __init__(self, x, y, w, h):
         self.rect = pygame.Rect(x, y, w, h)
         self.color = (255, 255, 255)
-        code = ''
         self.active = False
         self.FONT = pygame.font.Font(None, 36)
         self.txt_surface = self.FONT.render(code, True, self.color)
         self.max_length = 9
         self.code = ''
+        self.text = ''
 
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
