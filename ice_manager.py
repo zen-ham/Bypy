@@ -65,9 +65,9 @@ class MultiPeerManager:
     def new_connection_object(self, connection_id, session_code, as_backup):
         return {'data_channel': None, 'connection_id': connection_id, 'as_backup': as_backup, 'server_side_id': {'data': None, 'hook': threading.Event()}, 'session_code': session_code, 'is_established': {'data': False, 'hook': threading.Event()}, 'incoming_packets': {'data': [], 'hook': threading.Event()}, 'outgoing_packets': [], 'ping': None, 'offer': {'data': None, 'hook': threading.Event()}, 'answer': {'data': None, 'hook': threading.Event()}}
 
-    def create_new_connection(self, session_code):
+    def create_new_connection(self, session_code, as_backup=None):
         connection_id = len(self.peer_datachannel_objects)
-        self.peer_datachannel_objects.append(self.new_connection_object(connection_id, session_code))
+        self.peer_datachannel_objects.append(self.new_connection_object(connection_id, session_code, as_backup))
 
         zhmiscellany.processing.start_daemon(target=self.thread_async, args=(self._create_new_connection, (connection_id,)))
 
