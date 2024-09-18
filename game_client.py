@@ -165,7 +165,7 @@ def check_for_pvp_start():
 def display_player_coords():
     y_offset = 0
     for player_id, (x, y) in player_coords.items():
-        print(player_coords)
+        #print(player_coords)
         player = players[player_id]
         text = f"Player {player_id + 1}: ({x:.0f}, {y:.0f})"
         label = font.render(text, True, player.color)
