@@ -186,10 +186,10 @@ class TextBox:
     def __init__(self, x, y, w, h):
         self.rect = pygame.Rect(x, y, w, h)
         self.color = (255, 255, 255)
-        self.text = ''
+        code = ''
         self.active = False
         self.FONT = pygame.font.Font(None, 36)
-        self.txt_surface = self.FONT.render(self.text, True, self.color)
+        self.txt_surface = self.FONT.render(code, True, self.color)
         self.max_length = 9
         self.code = ''
 
@@ -204,13 +204,18 @@ class TextBox:
         if event.type == pygame.KEYDOWN:
             if self.active:
                 if (event.key == pygame.K_RETURN):
+<<<<<<< HEAD
                     self.code = self.text
                     print(f"Room code entered: {self.text}")
+=======
+                    print(f"Room code entered: {code}")
+>>>>>>> af2ce58bc31fc49133141f1c7bbc8619dee4ed94
                     return True
                 elif event.key == pygame.K_BACKSPACE:
-                    self.text = self.text[:-1]
+                    code = code[:-1]
                 elif event.key == pygame.K_v and (pygame.key.get_mods() & pygame.KMOD_CTRL):
                     pasted_text = pyperclip.paste()
+<<<<<<< HEAD
                     allowed_text = pasted_text[:self.max_length - len(self.text)]
                     self.text += allowed_text
                 elif len(self.text) < self.max_length:
@@ -218,6 +223,14 @@ class TextBox:
                 self.text = self.text[:self.max_length]
                 self.code = self.text
                 self.txt_surface = self.FONT.render(self.text, True, self.color)
+=======
+                    allowed_text = pasted_text[:self.max_length - len(code)]
+                    code += allowed_text
+                elif len(code) < self.max_length:
+                    code += event.unicode
+                code = code[:self.max_length]
+                self.txt_surface = self.FONT.render(code, True, self.color)
+>>>>>>> af2ce58bc31fc49133141f1c7bbc8619dee4ed94
         return False
 
     def draw(self, screen):
@@ -228,10 +241,10 @@ class Button:
     def __init__(self, text, x, y, w, h, callback):
         self.rect = pygame.Rect(x, y, w, h)
         self.color = (0, 255, 0)
-        self.text = text
+        code = text
         self.callback = callback
         self.FONT = pygame.font.Font(None, 36)
-        self.txt_surface = self.FONT.render(self.text, True, (255, 255, 255))
+        self.txt_surface = self.FONT.render(code, True, (255, 255, 255))
 
     def draw(self, screen):
         pygame.draw.rect(screen, self.color, self.rect)
