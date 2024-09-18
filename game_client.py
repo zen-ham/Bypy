@@ -28,6 +28,8 @@ wrecking_ball_friction = 0.95
 font = pygame.font.SysFont('Arial', 24)
 pvp_enabled = False
 current_map = 'lobby'
+global code
+code = ''
 yellow_block = pygame.Rect(WIDTH - 150, HEIGHT - 100, 100, 50)
 
 
@@ -186,6 +188,7 @@ class TextBox:
         self.max_length = 9
 
     def handle_event(self, event):
+        global code
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.rect.collidepoint(event.pos):
                 self.active = not self.active
@@ -195,9 +198,9 @@ class TextBox:
 
         if event.type == pygame.KEYDOWN:
             if self.active:
-                if event.key == pygame.K_RETURN:
+                if (event.key == pygame.K_RETURN):
+                    code = self.text
                     print(f"Room code entered: {self.text}")
-                    self.text = ''
                     return True
                 elif event.key == pygame.K_BACKSPACE:
                     self.text = self.text[:-1]
@@ -208,7 +211,7 @@ class TextBox:
                 elif len(self.text) < self.max_length:
                     self.text += event.unicode
                 self.text = self.text[:self.max_length]
-
+                code = self.text
                 self.txt_surface = self.FONT.render(self.text, True, self.color)
         return False
 
@@ -240,8 +243,9 @@ def host_room():
     print("Hosting room...")
 
 def join_room():
+    global code
     print("Joining Room...")
-
+    print(code)
 def room_selection_screen():
     screen_width, screen_height = screen.get_size()
     input_box_width, input_box_height = 200, 40
