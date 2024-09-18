@@ -12,7 +12,6 @@ RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 YELLOW = (255, 255, 0)
 BLACK = (0, 0, 0)
-player_coords = {}
 
 clock = pygame.time.Clock()
 FPS = 60
@@ -20,7 +19,6 @@ player_width, player_height = 50, 50
 player_speed = 5
 jump_strength = 15
 gravity = 1
-max_players = 8
 player_hp = 100
 wrecking_ball_radius = 30
 chain_length = 150
@@ -93,7 +91,6 @@ class Player:
 
         #self.update_wrecking_ball()
         self.handle_collisions()
-        player_coords[self.player_id] = (self.x, self.y)
         if self.y + player_height > HEIGHT:
             self.y = HEIGHT - player_height
             self.vel_y = 0
@@ -137,27 +134,26 @@ class Player:
         #pygame.draw.line(screen, BLACK, self.rect.center, self.wrecking_ball_pos, 5)
         #pygame.draw.circle(screen, BLACK, (int(self.wrecking_ball_pos[0]), int(self.wrecking_ball_pos[1])), wrecking_ball_radius)
 
-def switch_player():
-    global current_player_index
-    if players:
-        current_player_index = (current_player_index + 1) % len(players)
+#def switch_player():
+#    global current_player_index
+#    if players:
+#        current_player_index = (current_player_index + 1) % len(players)
 
 def add_player(player_id):
-    if len(players) < max_players:
-        new_x = 100 + len(players) * 100
+    new_x = 100 + len(players) * 100
 
-        new_player = Player(new_x, HEIGHT - 150, [BLUE, RED, GREEN, BLACK][len(players) % 4], player_id)
-        players.append(new_player)
+    new_player = Player(new_x, HEIGHT - 150, [BLUE, RED, GREEN, BLACK][len(players) % 4], player_id)
+    players[player_id] = new_player
 
-def handle_pvp_collisions():
-    for i in range(len(players)):
-        for j in range(i + 1, len(players)):
-            if wrecking_ball_hits_head(players[i], players[j]):
-                players[j].hp -= 1
+#def handle_pvp_collisions():
+#    for i in range(len(players)):
+#        for j in range(i + 1, len(players)):
+#            if wrecking_ball_hits_head(players[i], players[j]):
+#                players[j].hp -= 1
 
-def wrecking_ball_hits_head(player, target):
-    wx, wy = player.wrecking_ball_pos
-    return target.rect.collidepoint(wx, wy)
+#def wrecking_ball_hits_head(player, target):
+#    wx, wy = player.wrecking_ball_pos
+#    return target.rect.collidepoint(wx, wy)
 
 def switch_to_pvp():
     global pvp_enabled, current_map
@@ -168,16 +164,16 @@ def switch_to_pvp():
 
 def check_for_pvp_start():
     global yellow_block
-    if yellow_block and any(player.rect.colliderect(yellow_block) for player in players):
+    if yellow_block and any(player.rect.colliderect(yellow_block) for player in players.values()):
         yellow_block = None
         switch_to_pvp()
 
 def display_player_coords():
     y_offset = 0
-    for player_id, (x, y) in player_coords.items():
+    for player_id in players:
         #print(player_coords)
         player = players[player_id]
-        text = f"Player {player_id + 1}: ({x:.0f}, {y:.0f})"
+        text = f"Player {player_id}: ({player.x:.0f}, {player.y:.0f})"
         label = font.render(text, True, player.color)
         screen.blit(label, (10, 10 + y_offset))
         y_offset += 30
@@ -318,7 +314,7 @@ def room_selection_screen():
 
 
 
-players = []
+players = {}
 yellow_block_exists = True
 
 running = True
@@ -342,18 +338,18 @@ def main_game(room_id):
                 running = False
 
         keys = pygame.key.get_pressed()
-        for i, player in enumerate(players):
+        for i, player in enumerate(players.values()):
             if i == current_player_index:
                 player.handle_input(keys)
             player.update(is_active=(i == current_player_index))
 
-        if yellow_block_exists:
-            check_for_pvp_start()
+        #if yellow_block_exists:
+        #    check_for_pvp_start()
 
-        if pvp_enabled:
-            handle_pvp_collisions()
+        #if pvp_enabled:
+        #    handle_pvp_collisions()
 
-        for player in players:
+        for player in players.values():
             player.draw()
 
         platforms = lobby_platforms if current_map == 'lobby' else pvp_map_platforms
@@ -365,15 +361,15 @@ def main_game(room_id):
 
         display_player_coords()
 
-        ice_handler.send_message(room_id, {'relay': True, 'content': {'player_id': controlled_player_id, 'xy': player_coords[controlled_player_id]}})
+        ice_handler.send_message(room_id, {'relay': True, 'content': {'player_id': controlled_player_id, 'xy': (players[controlled_player_id].x, players[controlled_player_id].y)}})
 
         for packet in ice_handler.peer_datachannel_objects[room_id]['incoming_packets']['data']:
             if type(packet['content']) == dict:
                 packet_content_dict = packet['content']
                 inc_pid = packet_content_dict['player_id']
-                if inc_pid not in player_coords:
+                if inc_pid not in players:
                     add_player(inc_pid)
-                player_coords[inc_pid] = packet_content_dict['xy']
+                players[inc_pid].x, players[inc_pid].y = packet_content_dict['xy']
 
 
         pygame.display.flip()
