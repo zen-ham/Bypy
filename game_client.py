@@ -43,6 +43,7 @@ def generate_random_map():
 lobby_platforms = [
     pygame.Rect(200, HEIGHT - 100, 400, 20),
 ]
+
 pvp_map_platforms = generate_random_map()
 
 current_player_index = 0
