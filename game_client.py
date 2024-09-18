@@ -273,9 +273,9 @@ def room_selection_screen():
     host_button = Button("Host Room", host_button_x, host_button_y, host_button_width, host_button_height, host_room)
 
     selecting_room = True
-    joined_room = False
+    joined_room = None
 
-    while not joined_room:
+    while joined_room is None:
         while selecting_room:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
