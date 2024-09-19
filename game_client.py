@@ -3,14 +3,7 @@ os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 import math, sys, pygame, random, pyperclip, threading, zhmiscellany
 from ice_manager import MultiPeerManager
 
-zhmiscellany.misc.die_on_key('f8')
 
-pygame.init()
-
-# Get the display info
-info = pygame.display.Info()
-WIDTH, HEIGHT = info.current_w, info.current_h
-BASE_WIDTH, BASE_HEIGHT = 1920, 1080
 def scale_value(value, base_value, actual_value):
     return int(value * (actual_value / base_value))
 
@@ -28,46 +21,6 @@ def generate_random_map():
         platforms.append(pygame.Rect(x, y, width, height))
     return platforms
 
-lobby_platforms = [
-    pygame.Rect(
-        scale_value(200, BASE_WIDTH, WIDTH), 
-        scale_value(BASE_HEIGHT - 100, BASE_HEIGHT, HEIGHT), 
-        scale_value(400, BASE_WIDTH, WIDTH), 
-        scale_value(20, BASE_HEIGHT, HEIGHT)
-    ),
-]
-
-pvp_map_platforms = generate_random_map()
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("ByPy")
-
-WHITE = (255, 255, 255)
-BLUE = (0, 0, 255)
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
-YELLOW = (255, 255, 0)
-BLACK = (0, 0, 0)
-#COLORS = (YELLOW, BLUE, GREEN, RED)
-clock = pygame.time.Clock()
-FPS = 60
-player_width, player_height = 50, 50
-player_speed = 5
-jump_strength = 15
-gravity = 1
-player_hp = 100
-wrecking_ball_radius = 30
-chain_length = 150
-wrecking_ball_mass = 0.5
-wrecking_ball_friction = 0.95
-font = pygame.font.SysFont('Arial', 24)
-pvp_enabled = False
-current_map = 'lobby'
-global code
-code = ''
-yellow_block = pygame.Rect(WIDTH - 150, HEIGHT - 100, 100, 50)
-
-# ice stuff
-ice_handler = MultiPeerManager()
 
 def randomcolor(color):
     random_object = random.Random()
@@ -79,8 +32,7 @@ def randomcolor(color):
     rgb[secondary_color] = random_object.randint(0, 55)
     rgb[3 - primary_color - secondary_color] = random_object.randint(50, 200)
     return tuple(rgb)
-    
-current_player_index = 0
+
 
 class Player:
     def __init__(self, x, y, color, player_id):
@@ -415,6 +367,57 @@ def main_game(room_id):
                     players[inc_pid].x, players[inc_pid].y = packet_content_dict['xy']
         pygame.display.flip()
         clock.tick(FPS)
+
+
+zhmiscellany.misc.die_on_key('f8')
+
+pygame.init()
+
+# Get the display info
+info = pygame.display.Info()
+WIDTH, HEIGHT = info.current_w, info.current_h
+BASE_WIDTH, BASE_HEIGHT = 1920, 1080
+
+lobby_platforms = [
+    pygame.Rect(
+        scale_value(200, BASE_WIDTH, WIDTH),
+        scale_value(BASE_HEIGHT - 100, BASE_HEIGHT, HEIGHT),
+        scale_value(400, BASE_WIDTH, WIDTH),
+        scale_value(20, BASE_HEIGHT, HEIGHT)
+    ),
+]
+
+pvp_map_platforms = generate_random_map()
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("ByPy")
+
+WHITE = (255, 255, 255)
+BLUE = (0, 0, 255)
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+YELLOW = (255, 255, 0)
+BLACK = (0, 0, 0)
+#COLORS = (YELLOW, BLUE, GREEN, RED)
+clock = pygame.time.Clock()
+FPS = 60
+player_width, player_height = 50, 50
+player_speed = 5
+jump_strength = 15
+gravity = 1
+player_hp = 100
+wrecking_ball_radius = 30
+chain_length = 150
+wrecking_ball_mass = 0.5
+wrecking_ball_friction = 0.95
+font = pygame.font.SysFont('Arial', 24)
+pvp_enabled = False
+current_map = 'lobby'
+yellow_block = pygame.Rect(WIDTH - 150, HEIGHT - 100, 100, 50)
+
+# ice stuff
+ice_handler = MultiPeerManager()
+
+current_player_index = 0
 
 
 if __name__ == "__main__":
