@@ -369,6 +369,8 @@ pygame.init()
 # Get the display info
 info = pygame.display.Info()
 WIDTH, HEIGHT = info.current_w, info.current_h
+WIDTH = round(WIDTH/1.5)
+HEIGHT = round(HEIGHT/1.5)
 BASE_WIDTH, BASE_HEIGHT = 1920, 1080
 
 lobby_platforms = [
