@@ -164,9 +164,9 @@ class TextBox:
         self.color = (255, 255, 255)
         self.active = False
         self.FONT = pygame.font.Font(None, 36)
-        self.txt_surface = self.FONT.render(code, True, self.color)
-        self.max_length = 9
         self.code = ''
+        self.txt_surface = self.FONT.render(self.code, True, self.color)
+        self.max_length = 9
         self.text = ''
 
     def handle_event(self, event):
@@ -226,9 +226,7 @@ def host_room():
 
 
 def join_room():
-    global code
     print("Joining Room...")
-    print(code)
 
 
 def room_selection_screen():
@@ -300,12 +298,7 @@ def room_selection_screen():
 
     return joined_room
 
-players = {}
-yellow_block_exists = True
 
-running = True
-input_box = TextBox(200, 150, 200, 40)
-host_button = Button("Host a Room", 200, 250, 200, 50, host_room)
 def main_game(room_id):
     global yellow_block_exists
 
@@ -355,7 +348,7 @@ def main_game(room_id):
         if mode == 'test':
             pass
         else:
-            ice_handler.send_message(room_id, {'relay': True, 'content': {'player_id': controlled_player_id, 'xy': (players[controlled_player_id].x, players[controlled_player_id].y)}})
+            ice_handler.send_message(room_id, {'udp': True, 'relay': True, 'content': {'player_id': controlled_player_id, 'xy': (players[controlled_player_id].x, players[controlled_player_id].y)}})
 
             while ice_handler.peer_datachannel_objects[room_id]['incoming_packets']['data']:
                 packet = ice_handler.peer_datachannel_objects[room_id]['incoming_packets']['data'].pop(0)
@@ -418,6 +411,16 @@ yellow_block = pygame.Rect(WIDTH - 150, HEIGHT - 100, 100, 50)
 ice_handler = MultiPeerManager()
 
 current_player_index = 0
+
+tps = 20
+
+
+players = {}
+yellow_block_exists = True
+
+running = True
+input_box = TextBox(200, 150, 200, 40)
+host_button = Button("Host a Room", 200, 250, 200, 50, host_room)
 
 
 if __name__ == "__main__":

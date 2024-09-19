@@ -27,7 +27,7 @@ class MultiPeerManager:
         self.num_established_connections = 0
         self.processing_send = threading.Event()
         self.processing_send.set()
-        self.max_sent_packets_per_second = 40
+        self.max_sent_packets_per_second = 30  # THIS WILL BREAK WITH MORE THEN 2 PLAYERS
         self.last_sent_packet_time = 0
 
     def search_pastebin_titles(self, search):
@@ -42,6 +42,11 @@ class MultiPeerManager:
         zhmiscellany.processing.start_daemon(target=self.thread_async, args=(self._send_message, (connection_id, message)))
 
     async def _send_message(self, connection_id, message):
+        if 'udp' in message:
+            if not self.processing_send.is_set():  # if the packet is in udp mode and another message is being processed then don't even bother waiting to send it and just discard it
+                print('discarded packet')
+                return
+        print('sending packet')
         self.processing_send.wait()
         self.processing_send = threading.Event()
         data_channel = self.peer_datachannel_objects[connection_id]['data_channel']
