@@ -27,6 +27,8 @@ class MultiPeerManager:
         self.num_established_connections = 0
         self.processing_send = threading.Event()
         self.processing_send.set()
+        self.max_sent_packets_per_second = 40
+        self.last_sent_packet_time = 0
 
     def search_pastebin_titles(self, search):
         pastes = self.pastebin.list_pastes(1000)
@@ -49,6 +51,7 @@ class MultiPeerManager:
         except Exception as e:
             print(f'Tried to send message to connection {connection_id} but failed: {e}')
         buf_after = data_channel.bufferedAmount
+        zhmiscellany.misc.high_precision_sleep(1/self.max_sent_packets_per_second)
         self.processing_send.set()
         #print(f"{buf_before} {buf_after} Sent to connection {connection_id}: {message}")
 
@@ -202,7 +205,6 @@ class MultiPeerManager:
             def on_open():
                 print(f"Connection {connection_id} was established")
 
-            # Print any messages received on the data channel
             @channel.on("message")
             def on_message(message):
                 if self.peer_datachannel_objects[connection_id]['as_backup']:
