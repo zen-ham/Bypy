@@ -44,9 +44,9 @@ class MultiPeerManager:
     async def _send_message(self, connection_id, message):
         if 'udp' in message:
             if not self.processing_send.is_set():  # if the packet is in udp mode and another message is being processed then don't even bother waiting to send it and just discard it
-                print('discarded packet')
+                #print('discarded packet')
                 return
-        print('sending packet')
+        #print('sending packet')
         self.processing_send.wait()
         self.processing_send = threading.Event()
         data_channel = self.peer_datachannel_objects[connection_id]['data_channel']
