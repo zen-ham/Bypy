@@ -444,16 +444,8 @@ FPS = 60
 player_width, player_height = 50, 50
 player_speed = reverse_scale_value(5, BASE_WIDTH, WIDTH)
 jump_strength = 15
-<<<<<<< HEAD
 gravity = reverse_scale_value(0.65, BASE_HEIGHT, HEIGHT)
 print(gravity)
-=======
-<<<<<<< HEAD
-gravity = (BASE_HEIGHT/HEIGHT) * 0.5
-=======
-gravity = scale_value(1, BASE_HEIGHT, HEIGHT)
->>>>>>> 414a26dfa117264a38ed36afa872c7e0c0833e6d
->>>>>>> 2f1f6f86b0b1c39177b16c43622af670d79b3685
 player_hp = 100
 wrecking_ball_radius = 30
 chain_length = 150
