@@ -32,7 +32,7 @@ class MultiPeerManager:
 
     async def _send_message(self, connection_id, message):
         if 'udp' in message:
-            if not self.processing_send.is_set() or :  # if the packet is in udp mode and another message is being processed then don't even bother waiting to send it and just discard it
+            if not self.processing_send.is_set() or self.count_established_backups_for_connection(connection_id) < self.min_backup_connections:  # if the packet is in udp mode and another message is being processed then don't even bother waiting to send it and just discard it
                 #print('discarded packet')
                 return
         #print('sending packet')

@@ -7,6 +7,7 @@ from ice_manager import MultiPeerManager
 def scale_value(value, base_value, actual_value):
     return int(value * (actual_value / base_value))
 
+
 def generate_random_map():
     platforms = []
     for _ in range(random.randint(3, 6)):
@@ -41,7 +42,7 @@ class Player:
         self.color = color
         self.vel_x = 0
         self.vel_y = 0
-        self.is_jumping = False
+        self.is_jumping = True
         self.hp = player_hp
         self.rect = pygame.Rect(self.x, self.y, player_width, player_height)
         #self.wrecking_ball_pos = (self.x, self.y + chain_length)
@@ -61,13 +62,12 @@ class Player:
             self.vel_y = -jump_strength
             self.is_jumping = True
 
-    def update(self, is_active):
-        if not is_active:
-            self.vel_x = 0
-        self.vel_y += gravity
-        self.x += self.vel_x
-        self.y += self.vel_y
-        self.rect.topleft = (self.x, self.y)
+    def update(self):
+        if self.is_jumping:
+            self.vel_y += gravity
+            self.x += self.vel_x
+            self.y += self.vel_y
+            self.rect.topleft = (self.x, self.y)
 
         #self.update_wrecking_ball()
         self.handle_collisions()
@@ -75,6 +75,9 @@ class Player:
             self.y = HEIGHT - player_height
             self.vel_y = 0
             self.is_jumping = False
+
+    def update_collider(self):
+        self.rect.topleft = (self.x, self.y)
 
     def update_wrecking_ball(self):
         px, py = self.rect.center
@@ -95,7 +98,7 @@ class Player:
         self.wrecking_ball_pos = (wx, wy)
 
     def handle_collisions(self):
-        self.rect = pygame.Rect(self.x, self.y, player_width, player_height)
+        #self.update_collider()
         platforms = lobby_platforms if current_map == 'lobby' else pvp_map_platforms
         on_ground = False
         for platform in platforms:
@@ -105,9 +108,14 @@ class Player:
                     self.vel_y = 0
                     self.is_jumping = False
                     on_ground = True
+                    self.update_collider()
+                    break
+                    #while not self.rect.colliderect(platform):
+                    #    self.y += 0.1
+                    #    self.update_collider()
         if not on_ground:
             self.is_jumping = True
-        print(on_ground)
+        #print(on_ground)
 
 
     def draw(self):
@@ -329,7 +337,7 @@ def main_game(room_id):
         for i, player in enumerate(players.values()):
             if i == current_player_index:
                 player.handle_input(keys)
-            player.update(is_active=(i == current_player_index))
+            player.update()
 
         #if yellow_block_exists:
         #    check_for_pvp_start()
