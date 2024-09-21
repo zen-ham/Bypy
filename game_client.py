@@ -384,25 +384,8 @@ def main_game(room_id):
                     if inc_pid not in players:
                         add_player(inc_pid)
                     players[inc_pid].x, players[inc_pid].y = packet_content_dict['xy']
-<<<<<<< HEAD
         screen.blit(font.render(f"{round(avg_fps, 2)}", True, (0, 200, 0)), (10, 20))
         pygame.display.flip()
-        clock.tick(FPS)
-=======
-        current_time = pygame.time.get_ticks()
-        if current_time - fps_last_update_time >= 1000:
-            fps_last_update_time = current_time
-            fps = str(int(clock.get_fps()))
-            fps_text = font.render(fps, True, pygame.Color('white'))
->>>>>>> 2f1f6f86b0b1c39177b16c43622af670d79b3685
-
-        # Display FPS
-        screen.blit(fps_text, (10, 10))  # Position of the FPS text
-
-        # Update display
-        pygame.display.flip()
-
-        # Tick the clock
         clock.tick(FPS)
 
 zhmiscellany.misc.die_on_key('f8')
