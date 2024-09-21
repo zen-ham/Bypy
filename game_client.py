@@ -384,10 +384,26 @@ def main_game(room_id):
                     if inc_pid not in players:
                         add_player(inc_pid)
                     players[inc_pid].x, players[inc_pid].y = packet_content_dict['xy']
+<<<<<<< HEAD
         screen.blit(font.render(f"{round(avg_fps, 2)}", True, (0, 200, 0)), (10, 20))
         pygame.display.flip()
         clock.tick(FPS)
+=======
+        current_time = pygame.time.get_ticks()
+        if current_time - fps_last_update_time >= 1000:
+            fps_last_update_time = current_time
+            fps = str(int(clock.get_fps()))
+            fps_text = font.render(fps, True, pygame.Color('white'))
+>>>>>>> 2f1f6f86b0b1c39177b16c43622af670d79b3685
 
+        # Display FPS
+        screen.blit(fps_text, (10, 10))  # Position of the FPS text
+
+        # Update display
+        pygame.display.flip()
+
+        # Tick the clock
+        clock.tick(FPS)
 
 zhmiscellany.misc.die_on_key('f8')
 
@@ -445,8 +461,16 @@ FPS = 60
 player_width, player_height = 50, 50
 player_speed = reverse_scale_value(5, BASE_WIDTH, WIDTH)
 jump_strength = 15
+<<<<<<< HEAD
 gravity = reverse_scale_value(0.65, BASE_HEIGHT, HEIGHT)
 print(gravity)
+=======
+<<<<<<< HEAD
+gravity = (BASE_HEIGHT/HEIGHT) * 0.5
+=======
+gravity = scale_value(1, BASE_HEIGHT, HEIGHT)
+>>>>>>> 414a26dfa117264a38ed36afa872c7e0c0833e6d
+>>>>>>> 2f1f6f86b0b1c39177b16c43622af670d79b3685
 player_hp = 100
 wrecking_ball_radius = 30
 chain_length = 150
