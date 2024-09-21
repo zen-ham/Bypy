@@ -1,0 +1,12 @@
+from ice_manager import MultiPeerManager
+
+sdps = [
+    'c$|%sPix#T5XJ9-{SG=8>`EH_9oU1t$wJyR1d_J&IF{sHlU=W|y-nIrU$2vvrfs0;GR)}x-W!3wF8Si@u*?{E(4H&j<nQI>HM_h~jOX)NoDIutaW*bFn`&Ba`opoq^5gaS)x}e1KQu8L(w^F}3HbTLEqk*#+b^l>c1@tMIkZeGVGTRKySjaQySlq!n)68-md{qg_*`n0Tb>IsBb$gbdkAB<rw&g7_K>Q63|XX+!j{@L?U>OT^sJ!AY@ddKHYppL?+H&6bD9KdV>4+IYGWY!BwdJ*YN1JjClKCOG6-H16YLl}CIxWIjRNs9*z*?Sw~lQO!}yXNv@$$ai6F|Uu7z^obg&|Fo;a6(vnA&O9p?(A1&6?0jmZa(o>YZ4aKe;aJ-fPBTul<(z?71dSJHVdo$;aORW#Fj?mu0nBaIN1N3ym;s>q*Q9e>5ut0c9qy>=5-MXnT&+8S;M3{)ci;~l-sg>kvCD))Sb%U9qj1{(o@qH|PB0*GLFBui;hS$Kv|J1ga#6Pk%!D4lzgE2gYfGk56g-6QKM#{N(9zB}~eQ-qUqYGZb&vtI#*Q?m&vJJvmI@bS}^;%BFOh*-XtrdS`#>rMOa;r_$c-0yd=J>96Ac9Z(9Z`u)uEoD+0CKU>et2F|kQ&>n`3xoo#LtUa@p}RnFj$WWFuw0`l5G<B}mSed>eSw9*)pV^uqi_XSmMBXU3bjTx=O5BI{YRSq2@O;BA8d69(*',
+    'c$_P<HQ?pSx7AfJwlp@iG%&HSFh^#3`YCt@m?#+Nfgvwfv8^sISBb5G0+5|(n_iS(T43cA>gVF)ssIwmEzV5QEl$l%%qz)EwhH$RR?y<*0su^L7x@',
+    'c$|$>O>fjN5WTO||KKxHg6;9=NPE~XP^Gdev<US$iJjd@-E2s*-NLWONeiMtCFINa&Aj(!Y|X=*U(Am4jDZL3xprRv9$s$Q<+WlwpU%aspJx}dVa{2KX};@@rxur=x9h9T6LRS5koECE%}|&4<--kob1^&2scrA;l7{-&Fattaw!Xc(d3&?Ey=I#8L@npfR>JsPYL#1_3o%L70VnOg9NGi5I1<=77Tr*0fd(q~)HLy)8LdH240_BCvF~XYv%dZwam<)8Q&JP^#EGblf#9QbWq?=-O%gnT@V=0x;1w~!PN8K|0Jq#I5HA~ho?`gcvi-3iUTT+G86JvA5M+ugp&U3}S`j#poXfwpCFcSi=L)3-hrnHh(U%@QsRC`u31f8C<mz8>HBs=CH;Lkvbe>CRd|B}#m^7aIPgm(kBLwA<tSyiV@}sL3uef>@rPh_#E~%=(mEu8L!wrFfLWF<3qnEibE*Dnio=@WNig*mA4FEvFIjST91h71irKp6n@GPEYR?0gkG!wZ{I`<}5Oj)NV-M*{tA6Z8sbbp$6?Xer4S{R*U6S8BK{c4~e!Mcpusp@ElarpS@C(@n+zJJ*6x100!+-<&!#p$j(-1c{Ntf=Z{7rVBrn*sYhWl|fqQMg{9Un3ZV1*WTC;rIat1t3U-cW5Lombgs#8rMr)0V;>iqPAnbm{_YNE*x%FXi~u%%>wNrecQAlaY*|}X-}w6z5f925DC5',
+    'c$@{n-I79J007WuX{3?H42hU1vh*h@iMpszM3Fv~cG0u%IbOZ2_ZNLX(kN@aD9hRGGY;q;%WJy)we|hzbbfQDQ4golNx<ZGhGLp(Ewpnue@e<ka~fiV)V8I~qb4H8o#<z$lAjc;-fTUqFS(X=%Tp6}vUK{XP8+9a&+Muv2;lPq{D-};Yg%0y)b%b)GF+974u@gayG!gF?aTvW@767_hT=S*PF}M;<U}?G@-IJu7*$A8f7PF6`c{RA19^wlF1|??0jrHdYC>>)x4Q-??w^pyw>egSn~ZuIw>$V@D7}@hy?w){UGBtOlUX*V`W});?#+kTrE5I~Jhp&?WG!rX{L>@yZ%x;jS&2^{(1aR`-^+b)47_)Uk)gR>w?+&-eT&q*^$OC4Nmj-&g3`O~=c%N4M#!s861#w8d_hcDSY|8f_#z3Pk+}Ge>5qpQFO7TZ_3fVf(&|(WD=6M~orxaA$aSdZBKI_Y!;Mg7D)~D5eF5l~10;W89*N}_qt<eu_^PFF<Rg(oS4Mx5@XiaC76xc6b`<%oOd?~=5|=I!f>}x@!bq35s{tNdN40!cOpaVdEuyBj!RBc36zLt4xo%pg2lg3sjADhFw80E#h1dC>YjZDsWvL+F9FQ7<ga}FNZ#qTk4}s&g7REJdP+E@=jPMHW>GQjy3pPWLpxO3f-AezloCgJKCgg5Ipw?RIfr;}Zo}`I+7Ny=}H^?9c%s~_1^!njL7ZW!w4qHt|Kd@ql-xmz`a}AumrFe6;Xj$1<mD7Ke&$g)_iTVczMB{z',
+    '',
+]
+ugh = MultiPeerManager()
+for each in [a for a in sdps if a != '']:
+    print(ugh.decode_sdp(each), end='\n'*3)
