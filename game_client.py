@@ -1,11 +1,15 @@
 import os
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
-import math, sys, pygame, random, pyperclip, threading, zhmiscellany
+import math, sys, pygame, random, pyperclip, threading, zhmiscellany, time
 from ice_manager import MultiPeerManager
 
 
 def scale_value(value, base_value, actual_value):
     return value * (actual_value / base_value)
+
+
+def reverse_scale_value(value, base_value, actual_value):
+    return value / (actual_value / base_value)
 
 
 def generate_random_map():
@@ -141,11 +145,13 @@ def add_player(player_id):
 #    wx, wy = player.wrecking_ball_pos
 #    return target.rect.collidepoint(wx, wy)
 
+
 def switch_to_pvp():
     global pvp_enabled, current_map, pvp_map_platforms
     pvp_enabled = True
     current_map = 'pvp_map'
     pvp_map_platforms = generate_random_map()
+
 
 def check_for_pvp_start():
     global yellow_block
@@ -153,15 +159,16 @@ def check_for_pvp_start():
         yellow_block = None
         switch_to_pvp()
 
+
 def display_player_coords():
     y_offset = 0
     for player_id in players:
         #print(player_coords)
         player = players[player_id]
         text = f"Player {player_id}: ({player.x:.0f}, {player.y:.0f})"
-        label = font.render(text, True, player.color)
-        screen.blit(label, (10, 10 + y_offset))
+        screen.blit(font.render(text, True, player.color), (10, 10 + y_offset))
         y_offset += 30
+
 
 class TextBox:
     def __init__(self, x, y, w, h):
@@ -327,9 +334,20 @@ def main_game(room_id):
     add_player(controlled_player_id)
     background = pygame.image.load(f'assets\\mine{random.randint(1,9)}.jpg')
     background = pygame.transform.scale(background, (WIDTH, HEIGHT))
+<<<<<<< HEAD
     pygame.mixer.music.load(r'assets/Tussle Among Trees.mp3')
     pygame.mixer.music.play()
+=======
+    fps = 0
+    frame_start = 0
+    rolling_fps_tracker = []
+>>>>>>> 28087dd22121bc8ba48c8927978146efa19dbb1a
     while running:
+        fps = 1/(time.time()-frame_start)
+        rolling_fps_tracker.append(fps)
+        rolling_fps_tracker = rolling_fps_tracker[-60:]
+        avg_fps = sum(rolling_fps_tracker)/len(rolling_fps_tracker)
+        frame_start = time.time()
         screen.blit(background, (0, 0))
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -371,7 +389,11 @@ def main_game(room_id):
                     if inc_pid not in players:
                         add_player(inc_pid)
                     players[inc_pid].x, players[inc_pid].y = packet_content_dict['xy']
+<<<<<<< HEAD
         
+=======
+        screen.blit(font.render(f"{round(avg_fps, 2)}", True, (0, 200, 0)), (10, 20))
+>>>>>>> 28087dd22121bc8ba48c8927978146efa19dbb1a
         pygame.display.flip()
         clock.tick(FPS)
 
@@ -429,9 +451,13 @@ BLACK = (0, 0, 0)
 clock = pygame.time.Clock()
 FPS = 60
 player_width, player_height = 50, 50
-player_speed = scale_value(5, BASE_WIDTH, WIDTH)
+player_speed = reverse_scale_value(5, BASE_WIDTH, WIDTH)
 jump_strength = 15
+<<<<<<< HEAD
 gravity = scale_value(1, BASE_HEIGHT, HEIGHT)
+=======
+gravity = reverse_scale_value(0.65, BASE_HEIGHT, HEIGHT)
+>>>>>>> 28087dd22121bc8ba48c8927978146efa19dbb1a
 print(gravity)
 player_hp = 100
 wrecking_ball_radius = 30
