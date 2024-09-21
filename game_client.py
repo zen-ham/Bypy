@@ -95,10 +95,11 @@ class Player:
         self.wrecking_ball_pos = (wx, wy)
 
     def handle_collisions(self):
+        self.rect = pygame.Rect(self.x, self.y, player_width, player_height)
         platforms = lobby_platforms if current_map == 'lobby' else pvp_map_platforms
         on_ground = False
         for platform in platforms:
-            if self.rect.colliderect(platform) and self.vel_y > 0:
+            if self.rect.colliderect(platform) and self.vel_y >= 0:
                 if self.rect.bottom <= platform.top + self.vel_y:
                     self.y = platform.y - player_height
                     self.vel_y = 0
@@ -106,6 +107,8 @@ class Player:
                     on_ground = True
         if not on_ground:
             self.is_jumping = True
+        print(on_ground)
+
 
     def draw(self):
         pygame.draw.rect(screen, self.color, self.rect)
@@ -113,11 +116,6 @@ class Player:
         pygame.draw.rect(screen, GREEN, (self.x, self.y - 10, player_width * (self.hp / player_hp), 5))
         #pygame.draw.line(screen, BLACK, self.rect.center, self.wrecking_ball_pos, 5)
         #pygame.draw.circle(screen, BLACK, (int(self.wrecking_ball_pos[0]), int(self.wrecking_ball_pos[1])), wrecking_ball_radius)
-
-#def switch_player():
-#    global current_player_index
-#    if players:
-#        current_player_index = (current_player_index + 1) % len(players)
 
 def add_player(player_id):
     new_x = scale_value(100 + len(players) * 100, BASE_WIDTH, WIDTH)
@@ -136,10 +134,9 @@ def add_player(player_id):
 #    return target.rect.collidepoint(wx, wy)
 
 def switch_to_pvp():
-    global pvp_enabled, current_map
+    global pvp_enabled, current_map, pvp_map_platforms
     pvp_enabled = True
     current_map = 'pvp_map'
-    global pvp_map_platforms
     pvp_map_platforms = generate_random_map()
 
 def check_for_pvp_start():
@@ -230,29 +227,20 @@ def join_room():
 
 
 def room_selection_screen():
-    input_box_base_width, input_box_base_height = 200, 40
-    host_button_base_width, host_button_base_height = 200, 50
-    input_box_width = scale_value(input_box_base_width, BASE_WIDTH, WIDTH)
-    input_box_height = scale_value(input_box_base_height, BASE_HEIGHT, HEIGHT)
-    host_button_width = scale_value(host_button_base_width, BASE_WIDTH, WIDTH)
-    host_button_height = scale_value(host_button_base_height, BASE_HEIGHT, HEIGHT)
-
-    button_vertical_padding = 60
-    button_vertical_padding = scale_value(button_vertical_padding, BASE_HEIGHT, HEIGHT)
-
+    input_box_width = scale_value(300, BASE_WIDTH, WIDTH)
+    input_box_height = scale_value(50, BASE_HEIGHT, HEIGHT)
+    host_button_width = scale_value(250, BASE_WIDTH, WIDTH)
+    host_button_height = scale_value(50, BASE_HEIGHT, HEIGHT)
+    button_vertical_padding = scale_value(80, BASE_HEIGHT, HEIGHT)
     input_box_x = (WIDTH/2) - (input_box_width/2)
     input_box_y = (HEIGHT/2) - (input_box_height/2)
-    
     join_button_x = (WIDTH/2) - (host_button_width/2)
     join_button_y = ((HEIGHT/2) - (host_button_width/2)) + (button_vertical_padding*2) # move this button down a bit
-    
     host_button_x = (WIDTH/2) - (host_button_width/2)
     host_button_y = ((HEIGHT/2) - (host_button_width/2)) + (button_vertical_padding*3)
-
     input_box = TextBox(input_box_x, input_box_y, input_box_width, input_box_height)
     join_button = Button("Join Room", join_button_x, join_button_y, host_button_width, host_button_height, join_room)
     host_button = Button("Host Room", host_button_x, host_button_y, host_button_width, host_button_height, host_room)
-
     selecting_room = True
     joined_room = None
 
@@ -298,25 +286,41 @@ def room_selection_screen():
 
     return joined_room
 
+def apply_hue_variation(image, variation_amount):
+    # Create a copy of the original image
+    image_copy = image.copy()
+    
+    # Create random hue variations
+    hue_shift = random.randint(-variation_amount, variation_amount)
+    brightness_shift = random.randint(-variation_amount, variation_amount)
+
+    # Apply color tinting by modifying the surface color
+    for x in range(image_copy.get_width()):
+        for y in range(image_copy.get_height()):
+            r, g, b, a = image_copy.get_at((x, y))  # Get pixel color (with alpha)
+            r = max(0, min(255, r + hue_shift + brightness_shift))
+            g = max(0, min(255, g + hue_shift + brightness_shift))
+            b = max(0, min(255, b + hue_shift + brightness_shift))
+            image_copy.set_at((x, y), (r, g, b, a))  # Set modified color back to the image
+    
+    return image_copy
+
+
 
 def main_game(room_id):
     global yellow_block_exists
-
     running = True
-
     if mode == 'test':
         controlled_player_id = 0
     else:
         ice_handler.peer_datachannel_objects[room_id]['server_side_id']['hook'].wait()
-
         controlled_player_id = ice_handler.peer_datachannel_objects[room_id]['server_side_id']['data']
-
     print(f'Your id: {controlled_player_id}')
-
     add_player(controlled_player_id)
-
+    background = pygame.image.load(f'assets\\mine{random.randint(1,9)}.jpg')
+    background = pygame.transform.scale(background, (WIDTH, HEIGHT))
     while running:
-        screen.fill(WHITE)
+        screen.blit(background, (0, 0))
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -336,10 +340,8 @@ def main_game(room_id):
         for player in players.values():
             player.draw()
 
-        platforms = lobby_platforms if current_map == 'lobby' else pvp_map_platforms
-        for platform in platforms:
-            pygame.draw.rect(screen, BLACK, platform)
-
+        for platform_image, platform_pos in precomputed_platforms:
+            screen.blit(platform_image, platform_pos)
         if yellow_block:
             pygame.draw.rect(screen, YELLOW, yellow_block)
 
@@ -375,17 +377,37 @@ BASE_WIDTH, BASE_HEIGHT = 1920, 1080
 
 lobby_platforms = [
     pygame.Rect(
-        scale_value(200, BASE_WIDTH, WIDTH),
-        scale_value(BASE_HEIGHT - 100, BASE_HEIGHT, HEIGHT),
+        scale_value(WIDTH/3, BASE_WIDTH, WIDTH),
+        scale_value(BASE_HEIGHT - 170, BASE_HEIGHT, HEIGHT),
+        scale_value(700, BASE_WIDTH, WIDTH),
+        scale_value(80, BASE_HEIGHT, HEIGHT)
+    ),
+        pygame.Rect(
+        scale_value(WIDTH/8, BASE_WIDTH, WIDTH),
+        scale_value(BASE_HEIGHT - 320, BASE_HEIGHT, HEIGHT),
         scale_value(400, BASE_WIDTH, WIDTH),
-        scale_value(20, BASE_HEIGHT, HEIGHT)
+        scale_value(80, BASE_HEIGHT, HEIGHT)
+    ),
+        pygame.Rect(
+        scale_value(WIDTH/1.4, BASE_WIDTH, WIDTH),
+        scale_value(BASE_HEIGHT - 320, BASE_HEIGHT, HEIGHT),
+        scale_value(400, BASE_WIDTH, WIDTH),
+        scale_value(80, BASE_HEIGHT, HEIGHT)
     ),
 ]
+
+platform_image = pygame.image.load(r'assets\bigRockWall.png')
+precomputed_platforms = []
+for platform in lobby_platforms:
+    scaled_platform = pygame.transform.scale(platform_image, (platform.width, platform.height))
+    varied_platform = apply_hue_variation(scaled_platform, 40)
+    precomputed_platforms.append((varied_platform, platform.topleft))
 
 pvp_map_platforms = generate_random_map()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("ByPy")
 
+BROWN = (139, 69, 19)
 WHITE = (255, 255, 255)
 BLUE = (0, 0, 255)
 RED = (255, 0, 0)
@@ -398,7 +420,7 @@ FPS = 60
 player_width, player_height = 50, 50
 player_speed = 5
 jump_strength = 15
-gravity = 1
+gravity = 0.65
 player_hp = 100
 wrecking_ball_radius = 30
 chain_length = 150
@@ -413,10 +435,6 @@ yellow_block = pygame.Rect(WIDTH - 150, HEIGHT - 100, 100, 50)
 ice_handler = MultiPeerManager()
 
 current_player_index = 0
-
-tps = 20
-
-
 players = {}
 yellow_block_exists = True
 
