@@ -5,7 +5,7 @@ from ice_manager import MultiPeerManager
 
 
 def scale_value(value, base_value, actual_value):
-    return int(value * (actual_value / base_value))
+    return value * (actual_value / base_value)
 
 
 def generate_random_map():
@@ -397,19 +397,19 @@ BASE_WIDTH, BASE_HEIGHT = 1920, 1080
 
 lobby_platforms = [
     pygame.Rect(
-        scale_value(WIDTH/3, BASE_WIDTH, WIDTH),
+        scale_value(BASE_WIDTH/3, BASE_WIDTH, WIDTH),
         scale_value(BASE_HEIGHT - 170, BASE_HEIGHT, HEIGHT),
         scale_value(700, BASE_WIDTH, WIDTH),
         scale_value(80, BASE_HEIGHT, HEIGHT)
     ),
         pygame.Rect(
-        scale_value(WIDTH/8, BASE_WIDTH, WIDTH),
+        scale_value(BASE_WIDTH/8, BASE_WIDTH, WIDTH),
         scale_value(BASE_HEIGHT - 320, BASE_HEIGHT, HEIGHT),
         scale_value(400, BASE_WIDTH, WIDTH),
         scale_value(80, BASE_HEIGHT, HEIGHT)
     ),
         pygame.Rect(
-        scale_value(WIDTH/1.4, BASE_WIDTH, WIDTH),
+        scale_value(BASE_WIDTH/1.4, BASE_WIDTH, WIDTH),
         scale_value(BASE_HEIGHT - 320, BASE_HEIGHT, HEIGHT),
         scale_value(400, BASE_WIDTH, WIDTH),
         scale_value(80, BASE_HEIGHT, HEIGHT)
@@ -438,9 +438,13 @@ BLACK = (0, 0, 0)
 clock = pygame.time.Clock()
 FPS = 60
 player_width, player_height = 50, 50
-player_speed = 5
+player_speed = scale_value(5, BASE_WIDTH, WIDTH)
 jump_strength = 15
+<<<<<<< HEAD
 gravity = (BASE_HEIGHT/HEIGHT) * 0.5
+=======
+gravity = scale_value(1, BASE_HEIGHT, HEIGHT)
+>>>>>>> 414a26dfa117264a38ed36afa872c7e0c0833e6d
 player_hp = 100
 wrecking_ball_radius = 30
 chain_length = 150
