@@ -327,6 +327,8 @@ def main_game(room_id):
     add_player(controlled_player_id)
     background = pygame.image.load(f'assets\\mine{random.randint(1,9)}.jpg')
     background = pygame.transform.scale(background, (WIDTH, HEIGHT))
+    pygame.mixer.music.load(r'assets/Tussle Among Trees.mp3')
+    pygame.mixer.music.play()
     while running:
         screen.blit(background, (0, 0))
         for event in pygame.event.get():
@@ -369,19 +371,8 @@ def main_game(room_id):
                     if inc_pid not in players:
                         add_player(inc_pid)
                     players[inc_pid].x, players[inc_pid].y = packet_content_dict['xy']
-        current_time = pygame.time.get_ticks()
-        if current_time - fps_last_update_time >= 1000:
-            fps_last_update_time = current_time
-            fps = str(int(clock.get_fps()))
-            fps_text = font.render(fps, True, pygame.Color('white'))
-
-        # Display FPS
-        screen.blit(fps_text, (10, 10))  # Position of the FPS text
-
-        # Update display
+        
         pygame.display.flip()
-
-        # Tick the clock
         clock.tick(FPS)
 
 zhmiscellany.misc.die_on_key('f8')
@@ -440,11 +431,8 @@ FPS = 60
 player_width, player_height = 50, 50
 player_speed = scale_value(5, BASE_WIDTH, WIDTH)
 jump_strength = 15
-<<<<<<< HEAD
-gravity = (BASE_HEIGHT/HEIGHT) * 0.5
-=======
 gravity = scale_value(1, BASE_HEIGHT, HEIGHT)
->>>>>>> 414a26dfa117264a38ed36afa872c7e0c0833e6d
+print(gravity)
 player_hp = 100
 wrecking_ball_radius = 30
 chain_length = 150
@@ -469,6 +457,10 @@ host_button = Button("Host a Room", 200, 250, 200, 50, host_room)
 
 if __name__ == "__main__":
     mode = None
+    pygame.mixer.init()
+    pygame.mixer.music.set_volume(0.15)
+    pygame.mixer.music.load(r'assets\Oggy and the cockroaches theme song - _High quality_.mp3')
+    pygame.mixer.music.play()
     if len(sys.argv) != 1:
         if sys.argv[1] == 'test':
             mode = sys.argv[1]
