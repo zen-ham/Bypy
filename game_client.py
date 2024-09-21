@@ -350,10 +350,11 @@ def main_game(room_id):
         if mode == 'test':
             pass
         else:
-            ice_handler.send_message(room_id, {'udp': True, 'relay': True, 'content': {'player_id': controlled_player_id, 'xy': (players[controlled_player_id].x, players[controlled_player_id].y)}})
+            #ice_handler.send_message(room_id, {'udp': True, 'relay': True, 'content': {'player_id': controlled_player_id, 'xy': (players[controlled_player_id].x, players[controlled_player_id].y)}})
 
             while ice_handler.peer_datachannel_objects[room_id]['incoming_packets']['data']:
                 packet = ice_handler.peer_datachannel_objects[room_id]['incoming_packets']['data'].pop(0)
+                print(f'Received on connection {room_id}: {packet}')
                 if type(packet['content']) == dict:
                     packet_content_dict = packet['content']
                     inc_pid = packet_content_dict['player_id']
